@@ -3,4 +3,3 @@ venv
 .env
 __pycashe__
 config.py
-config1.py
