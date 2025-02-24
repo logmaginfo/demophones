@@ -8,6 +8,9 @@ from aiogram import Bot, Dispatcher
 from app.admin import admin
 from app.cmd.cmd import cmdGrup, cmdPrivate
 from app.cmd.pagination import pagin
+from app.new.color import newcolor
+from app.new.end import endrouter
+from app.new.sizes import newsize
 from app.new.user import newuser
 from app.user import user
 from app.db.models import async_main
@@ -18,7 +21,7 @@ bot = Bot(token=os.getenv('TOKEN'))
 bot.my_admins_list = []
 
 async def main():
-    dp.include_routers(user, admin, pagin, newuser)
+    dp.include_routers(user, admin, pagin, newuser, newsize, newcolor, endrouter)
     dp.startup.register(on_startup)
     await bot.delete_my_commands(scope=BotCommandScopeAllPrivateChats())
     await bot.delete_my_commands(scope=BotCommandScopeAllGroupChats())
