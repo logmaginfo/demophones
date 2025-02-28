@@ -4,7 +4,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from app.cmd.paginator import get_paginat_kb
 from app.db.requests import get_users, del_data, get_brands, get_sizes, get_color, get_delivery, get_categorys, \
-    get_subcategory, get_subcategory_category_id, get_category_id
+    get_subcategory, get_category_id, get_category_category_id
 from app.filter import ChatTypeFilter, IsAdmin
 from aiogram.filters import Command, Filter
 from app.filter import Admin
@@ -166,75 +166,136 @@ async def send_delivery_handler(callback:CallbackQuery):
         reply_markup=await get_paginat_kb(fun=delivery_menu),
     )
 
+# ############################################# category_menu
+# async def category_menu(**kwargs):
+#     start = kwargs['start']
+#     end = kwargs['end']
+#     # funs_dic['sizes_menu'] = sizes_menu
+#     builder = InlineKeyboardBuilder()
+#     category = await get_categorys()
+#     category = category.all()
+#
+#     builder.row(kb.main_menu)
+#     builder.row(await kb.add_item('category', f"➕ {kb.name_menu['category_menu']}"))
+#
+#     # builder.row(await kb.add_item('subcategory', f"{kb.name_menu['subcategory_menu']}"))
+#     for item in category[start:end]:
+#         photo = ''
+#         if item.photo != None:
+#             photo = '🖼'
+#         builder.row(
+#             InlineKeyboardButton(text=f"{str(item.sort)}) (🆔 {str(item.id)}) {str(item.name)} {photo}",
+#                                      callback_data=f"upcategory_category_{item.id}"),
+#             InlineKeyboardButton(text=kb.name_menu['subcategory_menu'],
+#                              callback_data=f"subcategory_{item.id}"),
+#             InlineKeyboardButton(text=kb.name_menu['product_menu'],
+#                                  callback_data=f"subcategory_{item.id}"),
+#             InlineKeyboardButton(text="🗑",
+#                                  callback_data=f"del_{item.id}_category")
+#
+#         )
+#     return (builder, len(category), 'category_menu')
+# @admin.callback_query(F.data.startswith("category"))
+# async def send_category_handler(callback:CallbackQuery):
+#     await callback.message.edit_text(
+#         text=kb.name_menu['category_menu'],
+#         reply_markup=await get_paginat_kb(fun=category_menu),
+#     )
 ############################################# category_menu
 async def category_menu(**kwargs):
-    start = kwargs['start']
-    end = kwargs['end']
-    # funs_dic['sizes_menu'] = sizes_menu
-    builder = InlineKeyboardBuilder()
-    category = await get_categorys()
-    category = category.all()
-
-    builder.row(kb.main_menu)
-    builder.row(await kb.add_item('category', f"➕ {kb.name_menu['category_menu']}"))
-    # builder.row(await kb.add_item('subcategory', f"{kb.name_menu['subcategory_menu']}"))
-    for item in category[start:end]:
-        photo = ''
-        if item.photo != None:
-            photo = '🖼'
-        builder.row(
-            InlineKeyboardButton(text=f"{str(item.sort)}) (🆔 {str(item.id)}) {str(item.name)} {photo}",
-                                     callback_data=f"upcategory_category_{item.id}"),
-            InlineKeyboardButton(text=kb.name_menu['subcategory_menu'],
-                             callback_data=f"subcategory_{item.id}"),
-            InlineKeyboardButton(text=kb.name_menu['product_menu'],
-                                 callback_data=f"subcategory_{item.id}"),
-            InlineKeyboardButton(text="🗑",
-                                 callback_data=f"del_{item.id}_category")
-
-        )
-    return (builder, len(category), 'category_menu')
-@admin.callback_query(F.data.startswith("category"))
-async def send_category_handler(callback:CallbackQuery):
-    await callback.message.edit_text(
-        text=kb.name_menu['category_menu'],
-        reply_markup=await get_paginat_kb(fun=category_menu),
-    )
-############################################# subcategory_menu
-async def subcategory_menu(**kwargs):
     start = kwargs['start']
     end = kwargs['end']
     category_id = kwargs['category_id']
 
     builder = InlineKeyboardBuilder()
-    subcategory = await get_subcategory_category_id(category_id)
-    subcategory = subcategory.all()
-
+    category = await get_category_category_id(category_id)
+    category = category.all()
     builder.row(kb.main_menu)
-    builder.row(await kb.menu_item( f"⬆️ {kb.name_menu['category_menu']}", 'category'))
-    builder.row(await kb.add_item(f'subcategory_{category_id}', f"➕ {kb.name_menu['subcategory_menu']}"))
+    #
+    # cat_kb = kb.name_menu['category_menu']
+    # if int(category_id)!=0:
+    #     main_category = await get_category_id(category_id)
+    #     top_main_category = await get_category_id(main_category.category_id)
+    #     if main_category.category_id != 0:
+    #        cat_kb = f"{kb.name_menu['subcategory_menu']} / {top_main_category.name}"
+    #     builder.row(await kb.menu_item(f"⬆️ {cat_kb} ",
+    #                                    f'category_{main_category.category_id}'))
+
+    # async def cat_menu(category_id):
+    #     main_category = await get_category_id(category_id)
+    #     if category_id!=0 and main_category.category_id != 0:
+    #        top_main_category = await get_category_id(main_category.category_id)
+    #        cat_kb = f"{kb.name_menu['subcategory_menu']} / {top_main_category.name}"
+    #        builder.row(await kb.menu_item(f"⬆️ {cat_kb} ",
+    #                                       f'category_{main_category.category_id}'))
+    #     else:
+    #         cat_kb = f"{kb.name_menu['category_menu']}"
+    #         builder.row(await kb.menu_item(f"⬆️ {cat_kb} ",
+    #                                    f'category_0'))
+    #     if category_id!=0 and main_category.category_id != 0:
+    #         if top_main_category:
+    #             if top_main_category.category_id != 0:
+    #                 await cat_menu(top_main_category.id)
+    cat_menu_list=[]
+    # if int(category_id) != 0:
+    #     cat_menu_list.append(
+    #         InlineKeyboardButton(text=f"⬆️ {kb.name_menu['category_menu']}", callback_data='category_0'))
+    async def cat_menu(category_id):
+
+        if int(category_id) != 0:
+            # cat_kb = f"⬆️ {kb.name_menu['category_menu']}"
+            # bt = await kb.menu_item(f"⬆️ {cat_kb} ", f'category_0')
+            main_category = await get_category_id(category_id)
+            name = kb.name_menu['category_menu']
+            if main_category.category_id != 0:
+                top_main_category = await get_category_id(main_category.category_id)
+                name = top_main_category.name
+            cat_menu_list.append(
+                    InlineKeyboardButton(text=f"⬆️ {name}",
+                                         callback_data=f'category_{main_category.category_id}'))
+            if main_category.category_id != 0:
+                 await cat_menu(main_category.category_id)
+
+
+    await cat_menu(category_id)
+
+    for i in list(reversed(cat_menu_list)):
+        builder.row(i)
+
+    builder.row(await kb.add_item(f'category_{category_id}', f"➕ {kb.name_menu['category_menu']}"))
     # builder.row(await kb.add_item('subcategory', f"{kb.name_menu['subcategory_menu']}"))
-    for item in subcategory[start:end]:
+    for item in category[start:end]:
+        inDel = InlineKeyboardButton(text="🗑",
+                                 callback_data=f"del_{item.id}_category")
         photo = ''
         if item.photo != None:
             photo = '🖼'
         builder.row(
             InlineKeyboardButton(text=f"{str(item.sort)}) (🆔 {str(item.id)}) {str(item.name)} {photo}",
-                                callback_data=f"upsubcategory_subcategory_{item.id}"),
+                                callback_data=f"upcategory_category_{item.id}"),
+            InlineKeyboardButton(text=f"{kb.name_menu['subcategory_menu']} {item.id}",
+                                callback_data=f"category_{item.id}"),
             InlineKeyboardButton(text=kb.name_menu['product_menu'],
-                                 callback_data=f"subcategory_{item.id}"),
-            InlineKeyboardButton(text="🗑",
-                                 callback_data=f"del_{item.id}_subcategory")
+                                 callback_data=f"category_{item.id}"),
+
+            inDel
 
         )
-    return (builder, len(subcategory), 'subcategory_menu')
-@admin.callback_query(F.data.startswith("subcategory"))
+        builder.as_markup()
+    return (builder, len(category), 'category_menu')
+@admin.callback_query(F.data.startswith("category"))
 async def send_subcategory_handler(callback:CallbackQuery):
     category_id = callback.data.split('_')[1]
-    category_name = await get_category_id(category_id)
+    category_id = int(category_id)
+    category_name = ''
+    cat_kb = kb.name_menu['category_menu']
+    if category_id != 0:
+        category_name = await get_category_id(category_id)
+        category_name = category_name.name
+        cat_kb = f"{kb.name_menu['subcategory_menu']} /"
     await callback.message.edit_text(
-        text=f'{kb.name_menu['subcategory_menu']} / {category_name.name}',
-        reply_markup=await get_paginat_kb(fun=subcategory_menu, category_id=category_id),
+        text=f'{cat_kb} {category_name}',
+        reply_markup=await get_paginat_kb(fun=category_menu, category_id=category_id),
     )
 
 ############################################# del
@@ -287,7 +348,7 @@ async def process_callback(callback_query: CallbackQuery):
 
 funs_dic={'brand_menu':brand_menu,'sizes_menu':sizes_menu, 'users_menu':users_menu,
           'color_menu':color_menu, 'delivery_menu':delivery_menu, 'category_menu':category_menu,
-          'subcategory_menu':subcategory_menu}
+          }
 
 
 

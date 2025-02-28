@@ -47,6 +47,8 @@ class Category(Base):
     sort: Mapped[str] = mapped_column(String(5), nullable=True)
     name: Mapped[str] = mapped_column(String(100), nullable=True)
     photo: Mapped[str] = mapped_column(String(300), nullable=True)
+    category_id: Mapped[int] = mapped_column(default=0)
+    # level: Mapped[int] = mapped_column(nullable=False)
 
 
 

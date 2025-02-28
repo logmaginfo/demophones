@@ -51,8 +51,10 @@ async def get_subcategory(session):
     return await session.scalars(select(Subcategory).order_by(Subcategory.sort))
 
 @sess
-async def get_subcategory_category_id(session, id):
-    return await session.scalars(select(Subcategory).where(Subcategory.category_id==int(id)).order_by(Subcategory.sort))
+async def get_category_category_id(session, id):
+    # return await session.scalars(select(Subcategory).where(Subcategory.category_id==int(id)).order_by(Subcategory.sort))
+    return await session.scalars(
+        select(Category).where(Category.category_id == int(id)).order_by(Category.sort))
     # return await session.scalars(select(Subcategory).where(Subcategory.category_id == id))
 
 @sess
@@ -196,9 +198,13 @@ async def set_brand_up(session, data):
 @sess
 async def set_category_new(session, data):
     category = await session.scalar(select(Category).where(Category.name == data['name']))
-    text = '❌ Такой уже есть'
+    text = '❌ Такая категория уже есть'
     if not category:
-        session.add(Category(name=data['name'], sort=data['sort'], photo=data['photo']))
+        session.add(Category(name=data['name'],
+                             sort=data['sort'],
+                             photo=data['photo'],
+                             category_id=int(data['category_id'])
+                             ))
         await session.commit()
         text = '👌 Категория добавлена'
     return text
@@ -206,7 +212,11 @@ async def set_category_new(session, data):
 @sess
 async def set_category_up(session, data):
     id = int(data['id'])
-    await session.execute(update(Category).where(Category.id == id).values(name=data['name'], sort=data['sort'], photo=data['photo']))
+    await session.execute(update(Category).where(Category.id == id).values(name=data['name'],
+                                                                           sort=data['sort'],
+                                                                           photo=data['photo'],
+                                                                           category_id=int(data['category_id'])
+                                                                           ))
     await session.commit()
     return "👌 Данные категории обновлены"
 
