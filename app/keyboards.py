@@ -18,7 +18,7 @@ main = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=name_menu['sizes_menu'], callback_data='sizes')],
         [InlineKeyboardButton(text=name_menu['color_menu'], callback_data='color')],
         [InlineKeyboardButton(text=name_menu['brand_menu'], callback_data='brand')],
-        [InlineKeyboardButton(text=name_menu['category_menu'], callback_data='category')],
+        [InlineKeyboardButton(text=name_menu['category_menu'], callback_data='category_0')],
         # [InlineKeyboardButton(text='📋 ПодКатегории', callback_data='subcategory')],
         [InlineKeyboardButton(text=name_menu['delivery_menu'], callback_data='delivery')],
         # [InlineKeyboardButton(text='🎁 Товары', callback_data='product')],
@@ -30,8 +30,8 @@ main_menu = InlineKeyboardButton(text='⬆️ Главное меню', callback
 async def menu_item(text, call):
      return InlineKeyboardButton(text=text, callback_data=call)
 
-async def add_item(i, img='➕ Добавить'):
-     return InlineKeyboardButton(text=img, callback_data=f'add_{i}')
+async def add_item(i, text='➕ Добавить'):
+     return InlineKeyboardButton(text=text, callback_data=f'add_{i}')
 
 cancel = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='🙅🏻 Отмена', callback_data='admin')]])

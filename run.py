@@ -13,7 +13,6 @@ from app.new.delivery import newdelivery
 from app.new.end import endrouter
 from app.new.product import newproduct
 from app.new.sizes import newsize
-from app.new.subcategory import newsubcategory
 from app.new.user import newuser
 from app.user import user
 from app.db.models import async_main
@@ -25,7 +24,7 @@ bot.my_admins_list = []
 
 async def main():
     dp.include_routers(user, admin, newuser, newsize,
-                       newcolor, newbrand, newcategory, newsubcategory, newdelivery,
+                       newcolor, newbrand, newcategory, newdelivery,
                        newproduct, paginat, endrouter)
     dp.startup.register(on_startup)
     await bot.delete_my_commands(scope=BotCommandScopeAllPrivateChats())
