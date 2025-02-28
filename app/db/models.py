@@ -44,7 +44,9 @@ class Category(Base):
     __tablename__ = 'category'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sort: Mapped[str] = mapped_column(String(5), nullable=True)
     name: Mapped[str] = mapped_column(String(100), nullable=True)
+    photo: Mapped[str] = mapped_column(String(300), nullable=True)
 
 
 
@@ -55,6 +57,7 @@ class Price(Base):
     name: Mapped[str] = mapped_column(String(50), nullable=True)
     price: Mapped[float] = mapped_column(PR, default=0)
     price_discount: Mapped[float] = mapped_column(PR, default=0)
+    product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=True)
     color_id: Mapped[int] = mapped_column(ForeignKey('color.id'), nullable=True)
     sizes_id: Mapped[int] = mapped_column(ForeignKey('sizes.id'), nullable=True)
 
@@ -62,7 +65,9 @@ class Subcategory(Base):
     __tablename__ = 'subcategory'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sort: Mapped[str] = mapped_column(String(5), nullable=True)
     name: Mapped[str] = mapped_column(String(100), nullable=True)
+    photo: Mapped[str] = mapped_column(String(300), nullable=True)
     category_id: Mapped[int] = mapped_column(ForeignKey('category.id'), nullable=True)
     category: Mapped['Category'] = relationship()
 
@@ -70,6 +75,7 @@ class Brand(Base):
     __tablename__ = 'brand'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sort: Mapped[str] = mapped_column(String(5), nullable=True)
     name: Mapped[str] = mapped_column(String(100), nullable=True)
     description: Mapped[str] = mapped_column(Text)
 
@@ -77,21 +83,24 @@ class Product(Base):
     __tablename__ = 'product'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sort: Mapped[str] = mapped_column(String(5), nullable=True)
     name: Mapped[str] = mapped_column(String(200), nullable=True)
-    description: Mapped[str] = mapped_column(Text)
-    price_id: Mapped[int] = mapped_column(ForeignKey('price.id'), nullable=True)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey('category.id'), nullable=True)
     subcategory_id: Mapped[int] = mapped_column(ForeignKey('subcategory.id'), nullable=True)
-    brand_id: Mapped[int] = mapped_column(ForeignKey('brand.id'), nullable=False)
-    subcategory: Mapped['Subcategory']=relationship()
+    brand_id: Mapped[int] = mapped_column(ForeignKey('brand.id'), nullable=True)
+    category: Mapped['Category'] = relationship()
+    subcategory: Mapped['Subcategory'] = relationship()
+    brand: Mapped['Brand'] = relationship()
 
 class Photo(Base):
     __tablename__ = 'photo'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sort: Mapped[str] = mapped_column(String(5), nullable=True)
     name: Mapped[str] = mapped_column(String(200), nullable=True)
-    photo: Mapped[str] = mapped_column(String(300), nullable=True)
-    product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=False)
-    product: Mapped['Product']=relationship()
+    price_id: Mapped[int] = mapped_column(ForeignKey('price.id'), nullable=False)
+    price: Mapped['Price']=relationship()
 
 class Color(Base):
     __tablename__ = 'color'
@@ -104,8 +113,9 @@ class Delivery(Base):
     __tablename__ = 'delivery'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(50), nullable=True)
-    description: Mapped[str] = mapped_column(String(200), nullable=True)
+    sort: Mapped[str] = mapped_column(String(5), nullable=True)
+    name: Mapped[str] = mapped_column(String(90), nullable=True)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
     price: Mapped[float] = mapped_column(PR, default=0)
 
 class basket(Base):
