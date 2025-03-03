@@ -1,16 +1,13 @@
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
 from sqlalchemy import null
-
 from app.admin import category_menu
 from app.cmd.paginator import get_paginat_kb
-from app.db.models import Category
-from app.db.requests import set_category_new, set_category_up, get_category_id, get_category_id
+from app.db.requests import set_category_new, set_category_up, get_category_id
 from app.filter import Admin
 from aiogram.types import Message, CallbackQuery
 from app.states import UpCategory
 import app.keyboards as kb
-
 
 newcategory = Router()
 newcategory.message.filter(Admin())
@@ -39,6 +36,10 @@ async def category_up(callback:CallbackQuery, state: FSMContext):
     await state.update_data(status='up')
     category = await get_category_id(id)
     main_category = await get_category_id(category.category_id)
+    if not main_category:
+        name = kb.name_menu['category_menu']
+    else:
+        name = main_category.name
     await state.update_data(category_id=category.category_id)
     await state.update_data(id=id)
     #####
@@ -46,23 +47,15 @@ async def category_up(callback:CallbackQuery, state: FSMContext):
     #####
     if category.photo != None:
        await callback.message.answer_photo(category.photo)
-    await callback.message.answer(f'<b>Данные:</b>\n'
+    await callback.message.edit_text(f'<b>Данные:</b>\n'
                                   f'(🆔 {category.id})\n'
                                   f'Сортировка: {category.sort}\n'
-                                  f'{category.category_id} / {category.name}\n'
-                                  f'Название: {category.name}', parse_mode='html')
-
-    await callback.message.answer('<b>Новые данные:\n'
-                                  'Старые будут удалены❗️\nСортировка:</b>',
+                                  f'{category.category_id} / {name}\n'
+                                  f'Название: {category.name}\n'
+                                  f'<b>Новые данные:\n'
+                                  'Старые будут удалены❗️\n'
+                                  'Сортировка:</b>',
                                   reply_markup=await kb.kb_cancel(f'category_{data['category_id']}'), parse_mode='html')
-
-################################# cat
-# @newcategory.callback_query(Up.category_id, F.data.startswith('cat_'))
-# async def category_new_cat(callback:CallbackQuery, state: FSMContext):
-#     await state.set_state(Up.sort)
-#     id = callback.data.split('_')[1]
-#     await state.update_data(category_id=id)
-#     await callback.message.edit_text('Сортировка', reply_markup=kb.cancel, parse_mode='html')
 
 ################################# sort
 @newcategory.message(UpCategory.sort, F.text)
@@ -115,7 +108,7 @@ async def category_new_photo(message: Message, state: FSMContext):
     if data['status'] == 'up':
         text = await set_category_up(data)
     await message.answer(
-        text=f'{cat_kb} {name}',
+        text=f'{cat_kb} {name} {text}',
         reply_markup=await get_paginat_kb(fun=category_menu, category_id=category_id))
     await state.clear()
 
@@ -138,6 +131,6 @@ async def category_new_photo_null(callback:CallbackQuery, state: FSMContext):
         text = await set_category_up(data)
     await callback.message.bot.answer_callback_query(callback.id, text=text, show_alert=False)
     await callback.message.edit_text(
-        text=f'{cat_kb} {name}',
+        text=f'{cat_kb} {name} {text}',
         reply_markup=await get_paginat_kb(fun=category_menu, category_id=category_id))
     await state.clear()

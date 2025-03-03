@@ -3,7 +3,6 @@ from aiogram import Router, F
 from sqlalchemy import null
 
 from app.admin import color_menu
-from app.cmd.pagination import get_paginated_kb
 from app.cmd.paginator import get_paginat_kb
 from app.db.requests import set_color_new, get_color_id, set_color_up
 from app.filter import Admin

@@ -1,15 +1,17 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-from app.db.requests import get_subcategory, get_categorys, get_brands
+from app.db.requests import get_categorys, get_brands
 name_menu ={'users_menu':'👨‍👩‍👦 Пользователи',
-            'brand_menu':'©️ Бренды',
+            'brand_menu':'📌 Теги',
             'sizes_menu':'📶 Размеры',
             'color_menu':'🔵 Цвета',
             'delivery_menu':'🚚 Доставки',
             'category_menu':'📋 Категории',
-            'subcategory_menu':'📋📋 ПодКатегории',
+            'subcategory_menu':'📋 ПодКатегории',
             'product_menu':'🎁 Товары',
+            'price_menu':'💰 Прайсы',
+            'cancel':'🙅🏻 Отмена',
             }
 
 
@@ -26,6 +28,8 @@ main = InlineKeyboardMarkup(inline_keyboard=[
 #[InlineKeyboardButton(text='Главное меню', callback_data='admin')]
 
 main_menu = InlineKeyboardButton(text='⬆️ Главное меню', callback_data='admin')
+
+
 
 async def menu_item(text, call):
      return InlineKeyboardButton(text=text, callback_data=call)

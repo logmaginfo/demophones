@@ -1,5 +1,4 @@
 import os
-
 from aiogram.types import BotCommandScopeAllPrivateChats, BotCommandScopeAllGroupChats
 from dotenv import load_dotenv #pip install python-dotenv
 import asyncio
@@ -12,6 +11,7 @@ from app.new.color import newcolor
 from app.new.delivery import newdelivery
 from app.new.end import endrouter
 from app.new.product import newproduct
+from app.new.productbrand import newproductbrand
 from app.new.sizes import newsize
 from app.new.user import newuser
 from app.user import user
@@ -25,7 +25,7 @@ bot.my_admins_list = []
 async def main():
     dp.include_routers(user, admin, newuser, newsize,
                        newcolor, newbrand, newcategory, newdelivery,
-                       newproduct, paginat, endrouter)
+                       newproductbrand, newproduct, paginat, endrouter)
     dp.startup.register(on_startup)
     await bot.delete_my_commands(scope=BotCommandScopeAllPrivateChats())
     await bot.delete_my_commands(scope=BotCommandScopeAllGroupChats())

@@ -2,7 +2,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
 from sqlalchemy import null
 from app.admin import users_menu
-from app.cmd.pagination import get_paginated_kb
 from app.cmd.paginator import get_paginat_kb
 from app.db.requests import set_user_new, get_user_id, set_user_up
 from app.filter import Admin
@@ -162,7 +161,7 @@ async def user_new_comment(message: Message, state: FSMContext):
            text = await set_user_new(data)
         if data['status'] == 'up':
            text = await set_user_up(data)
-        await message.answer(text, reply_markup=await get_paginated_kb(pages=10, switch=data["switch"]))
+        await message.answer(kb.name_menu['users_menu'], reply_markup=await get_paginat_kb(fun=users_menu),)
     else:
         await message.answer('Комментарий 💬 (<280)', reply_markup=await kb.kb_next('users_menu'))
 
