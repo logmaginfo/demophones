@@ -1,114 +1,150 @@
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
-from app.cmd.pagination import get_paginated_kb
-from app.db.requests import set_delivery_new, set_delivery_up, get_delivery_id, get_product_id, set_product_new, \
-    set_product_up
+from sqlalchemy import null
+from app.admin import category_menu, product_menu
+from app.cmd.paginator import get_paginat_kb
+from app.db.requests import get_category_id, get_product_id, set_product_new, set_product_up
 from app.filter import Admin
 from aiogram.types import Message, CallbackQuery
-from app.states import UpBrand, UpDelivery, UpProduct
+from app.states import UpCategory, UpProduct
 import app.keyboards as kb
-from sqlalchemy import null
+
 newproduct = Router()
 newproduct.message.filter(Admin())
-#add_{switch}_{subcat}_{catprod}_{subcatprod}
+
 @newproduct.callback_query(F.data.startswith('add_product'))
 async def product_new(callback:CallbackQuery, state: FSMContext):
-
     switch = callback.data.split('_')[1]
-    subcat = callback.data.split('_')[2]
-    catprod = callback.data.split('_')[3]
-    subcatprod = callback.data.split('_')[4]
-    print(f"\n----------------->>>{subcat}<<<--------------------\n")
-    await state.set_state(UpProduct.sort)
+    category_id = callback.data.split('_')[2]
+    await state.update_data(category_id=category_id)
     await state.update_data(switch=switch)
     await state.update_data(status='new')
-    await state.update_data(catprod=catprod)
-    await state.update_data(subcatprod=subcatprod)
-    await state.update_data(subcat=subcat)
-
-    await callback.message.answer('Сортировка <b>*</b>', reply_markup=kb.cancel, parse_mode='html')
-
-################################# upproduct upproduct_{switch}_{item.id}_{catprod}_{subcatprod}
+    await state.set_state(UpProduct.sort)
+    #####
+    data = await state.get_data()
+    #####
+    await callback.message.answer('Сортировка:',
+                                  reply_markup=await kb.kb_cancel(f'product_{data['category_id']}'),
+                                  parse_mode='html')
+################################# upcategory_
 @newproduct.callback_query(F.data.startswith('upproduct_'))
 async def product_up(callback:CallbackQuery, state: FSMContext):
     switch = callback.data.split('_')[1]
     id = callback.data.split('_')[2]
-    catprod = callback.data.split('_')[3]
-    subcatprod = callback.data.split('_')[4]
-
     await state.set_state(UpProduct.sort)
     await state.update_data(switch=switch)
     await state.update_data(status='up')
-    await state.update_data(catprod=catprod)
-    await state.update_data(subcatprod=subcatprod)
     product = await get_product_id(id)
-    await state.update_data(id=product.id)
+    category = await get_category_id(product.category_id)
+    if not category:
+        name = kb.name_menu['category_menu']
+    else:
+        name = category.name
+    await state.update_data(category_id=product.category_id)
+    await state.update_data(id=id)
+    #####
+    data = await state.get_data()
+    #####
+    if product.photo != None:
+       await callback.message.answer_photo(product.photo)
     await callback.message.answer(f'<b>Данные:</b>\n'
-                                  f'{product.sort} (🆔 {product.id = })\n'
-                                  f'Назвагние: {product.name}\n'
-                                  f'Описание: {product.description}\n'
-                                  f'Бренд: {product.brand_id}', parse_mode='html')
+                                  f'(🆔 {product.id})\n'
+                                  f'Сортировка: {product.sort}\n'
+                                  f'{product.category_id} / {name}\n'
+                                  f'Название: {product.name}\n'
+                                  f'Описание: {product.description}', parse_mode='html')
 
     await callback.message.answer('<b>Новые данные:\n'
-                                  'Старые будут удалены!</b>\nСортировка', reply_markup=kb.cancel, parse_mode='html')
+                                  'Старые будут удалены❗️\nСортировка:</b>',
+                                  reply_markup=await kb.kb_cancel(f'product_{data['category_id']}'), parse_mode='html')
 
 ################################# sort
 @newproduct.message(UpProduct.sort, F.text)
 async def product_new_sort(message: Message, state: FSMContext):
+    #####
+    data = await state.get_data()
+    #####
     if len(message.text)<5:
         await state.set_state(UpProduct.name)
         await state.update_data(sort=message.text)
-        await message.answer('Введите название', reply_markup=kb.cancel)
-    else:
-        await message.answer('Сортировка(<5)', reply_markup=kb.cancel)
+        await message.answer('Введите название продукта',
+                             reply_markup=await kb.kb_cancel(f'product_{data['category_id']}'))
+    else:#category_{item.id}
+        await message.answer('Сортировка(<5)',
+                             reply_markup=await kb.kb_cancel(f'product_{data['category_id']}'))
 
-################################# name
+##################################### name
 @newproduct.message(UpProduct.name, F.text)
 async def product_new_name(message: Message, state: FSMContext):
+    #####
+    data = await state.get_data()
+    #####
     if len(message.text)<90:
-        await state.set_state(UpProduct.description)
         await state.update_data(name=message.text)
-        await message.answer('Введите описание', reply_markup=kb.cancel)
+        await state.set_state(UpProduct.description)
+        await message.answer('Добавьте описание продукта (2000 зн)',
+                             reply_markup=await kb.kb_cancel(f'product_{data['category_id']}'))
     else:
-        await message.answer('Введите название(<90)', reply_markup=kb.cancel)
-
-################################# description
+        data = await state.get_data()
+        await message.answer('Введите название продукта(< 90 зн)',
+                             reply_markup=await kb.kb_cancel(f'product_{data['category_id']}'))
+##################################### description
 @newproduct.message(UpProduct.description, F.text)
-async def product_new_desc(message: Message, state: FSMContext):
-    if len(message.text)<500:
+async def description_new_name(message: Message, state: FSMContext):
+    #####
+    data = await state.get_data()
+    #####
+    if len(message.text)<2000:
         await state.update_data(description=message.text)
-        await state.set_state(UpProduct.brand_id)
-        await message.answer('Выберите бренд', reply_markup=await kb.kbbrand())
+        await state.set_state(UpProduct.photo)
+        await message.answer('Добавьте баннер продукта',
+                             reply_markup=await kb.kb_next(f'product_{data['category_id']}'))
     else:
-        await message.answer('Введите описание(<500)', reply_markup=kb.cancel)
-################################# brand_id   plusbrand_
-
-@newproduct.callback_query(UpProduct.brand_id, F.data.startswith('plusbrand_'))
-async def product_brand_id(callback:CallbackQuery, state: FSMContext):
-    brand_id = callback.data.split('_')[1]
-    await state.update_data(brand_id=brand_id)
+        data = await state.get_data()
+        await message.answer('Введите описание продукта < 2000 зн',
+                             reply_markup=await kb.kb_cancel(f'product_{data['category_id']}'))
+################################# photo
+@newproduct.message(UpProduct.photo, F.photo)
+async def product_new_photo(message: Message, state: FSMContext):
+    id_photo = message.photo[-1].file_id
+    await state.update_data(photo=id_photo)
     data = await state.get_data()
+    category_id = data['category_id']
+    name = ''
+    cat_kb = f"{kb.name_menu['category_menu']}"
+    if int(category_id)!=0:
+        main_category = await get_category_id(category_id)
+        name = main_category.name
+        cat_kb = f"{kb.name_menu['subcategory_menu']} /"
     text = 'нет'
     if data['status'] == 'new':
         text = await set_product_new(data)
     if data['status'] == 'up':
         text = await set_product_up(data)
-
+    await message.answer(
+        text=f'{cat_kb} {name} {text}',
+        reply_markup=await get_paginat_kb(fun=product_menu, category_id=category_id))
     await state.clear()
-    await callback.message.answer(text,
-    reply_markup = await get_paginated_kb(pages=10, switch="product", subcat=int(data['subcat']), catprod=int(data['catprod']),
-                                          subcatprod=int(data['subcatprod'])))
-@newproduct.callback_query(UpProduct.brand_id, F.data == 'next')
-async def product_brand_id(callback:CallbackQuery, state: FSMContext):
-    await state.update_data(brand_id=0)
+
+
+@newproduct.callback_query(UpProduct.photo, F.data == 'next')
+async def product_new_photo_null(callback:CallbackQuery, state: FSMContext):
+    await state.update_data(photo=null())
     data = await state.get_data()
+    category_id = data['category_id']
+    name = ''
+    cat_kb = f"{kb.name_menu['category_menu']}"
+    if int(category_id) != 0:
+        main_category = await get_category_id(category_id)
+        name = main_category.name
+        cat_kb = f"{kb.name_menu['subcategory_menu']} /"
     text = 'нет'
     if data['status'] == 'new':
         text = await set_product_new(data)
     if data['status'] == 'up':
         text = await set_product_up(data)
-
+    await callback.message.bot.answer_callback_query(callback.id, text=text, show_alert=False)
+    await callback.message.edit_text(
+        text=f'{cat_kb} {name} {text}',
+        reply_markup=await get_paginat_kb(fun=product_menu, category_id=category_id))
     await state.clear()
-    await callback.message.answer(text,
-    reply_markup = await get_paginated_kb(pages=10, switch="product", subcat=0, catprod=int(data['catprod']),
-                                          subcatprod=int(data['subcatprod'])))

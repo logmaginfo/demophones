@@ -27,11 +27,11 @@ class UpColor(StatesGroup):
     name = State()
     photo = State()
 
-class UpSub(StatesGroup):
-    category_id = State()
-    name = State()
-    sort = State()
-    photo = State()
+# class UpSub(StatesGroup):
+#     category_id = State()
+#     name = State()
+#     sort = State()
+#     photo = State()
 
 class UpDelivery(StatesGroup):
     sort = State()
@@ -46,4 +46,5 @@ class UpProduct(StatesGroup):
     sort = State()
     name = State()
     description = State()
-    brand_id = State()
+    photo = State()
+

@@ -2,7 +2,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
 
 from app.admin import delivery_menu
-from app.cmd.pagination import get_paginated_kb
 from app.cmd.paginator import get_paginat_kb
 from app.db.requests import set_delivery_new, set_delivery_up, get_delivery_id
 from app.filter import Admin

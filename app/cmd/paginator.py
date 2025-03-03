@@ -14,14 +14,13 @@ from aiogram.types import Message, CallbackQuery, InputFile
 paginat = Router()
 paginat.message.filter(Admin())
 
-async def get_paginat_kb(page: int = 0,  pages:int = 10, fun = None, category_id=0) -> InlineKeyboardMarkup:
+async def get_paginat_kb(page: int = 0,  pages:int = 10, fun = None, category_id=0, product_id=0) -> InlineKeyboardMarkup:
     page = int(page)
     pages = int(pages)
 
     start = page * pages
     end = start + pages
-
-    res = await fun(start=start, end=end, category_id=category_id)
+    res = await fun(start=start, end=end, category_id=category_id, product_id=product_id)
     builder = res[0]
     len_item = res[1]
     str_name_fun = res[2]

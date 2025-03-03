@@ -46,7 +46,7 @@ async def brand_new_sort(message: Message, state: FSMContext):
     if len(message.text)<5:
         await state.set_state(UpBrand.name)
         await state.update_data(sort=message.text)
-        await message.answer('Введите название бренда', reply_markup=await kb.kb_cancel('brand_menu'))
+        await message.answer('Введите название тега', reply_markup=await kb.kb_cancel('brand_menu'))
     else:
         await message.answer('Сортировка(<5)', reply_markup=await kb.kb_cancel('brand_menu'))
 ################################# name
@@ -55,9 +55,9 @@ async def brand_new_name(message: Message, state: FSMContext):
     if len(message.text)<90:
         await state.set_state(UpBrand.description)
         await state.update_data(name=message.text)
-        await message.answer('Введите описание бренда', reply_markup=await kb.kb_cancel('brand_menu'))
+        await message.answer('Введите описание тега', reply_markup=await kb.kb_cancel('brand_menu'))
     else:
-        await message.answer('Введите название бренда(<90)', reply_markup=await kb.kb_cancel('brand_menu'))
+        await message.answer('Введите название тега(<90)', reply_markup=await kb.kb_cancel('brand_menu'))
 
 ################################# description
 @newbrand.message(UpBrand.description, F.text)
@@ -74,4 +74,4 @@ async def brand_new_desc(message: Message, state: FSMContext):
         await state.clear()
 
     else:
-        await message.answer('Введите описание бренда(<500)', reply_markup=await kb.kb_cancel('brand_menu'))
+        await message.answer('Введите описание тега(<500)', reply_markup=await kb.kb_cancel('brand_menu'))
