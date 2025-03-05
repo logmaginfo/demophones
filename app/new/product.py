@@ -1,12 +1,12 @@
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
 from sqlalchemy import null
-from app.admin import category_menu, product_menu
+from app.admin import product_menu
 from app.cmd.paginator import get_paginat_kb
 from app.db.requests import get_category_id, get_product_id, set_product_new, set_product_up
 from app.filter import Admin
 from aiogram.types import Message, CallbackQuery
-from app.states import UpCategory, UpProduct
+from app.states import UpProduct
 import app.keyboards as kb
 
 newproduct = Router()
@@ -26,7 +26,7 @@ async def product_new(callback:CallbackQuery, state: FSMContext):
     await callback.message.answer('Сортировка:',
                                   reply_markup=await kb.kb_cancel(f'product_{data['category_id']}'),
                                   parse_mode='html')
-################################# upcategory_
+################################# upproduct_
 @newproduct.callback_query(F.data.startswith('upproduct_'))
 async def product_up(callback:CallbackQuery, state: FSMContext):
     switch = callback.data.split('_')[1]

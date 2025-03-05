@@ -1,10 +1,8 @@
 from sqlalchemy import null, func, table, column
-
-from app.db.models import async_session
 from sqlalchemy import select, update, delete, desc
 from app.db.models import *
-from app.db.models import *
-from sqlalchemy import null
+from sqlalchemy import and_, or_
+
 
 def sess(func):
     async def con(*args, **kwargs):
@@ -50,6 +48,9 @@ async def get_categorys(session):
 async def get_category_category_id(session, id):
     return await session.scalars(
         select(Category).where(Category.category_id == int(id)).order_by(Category.sort))
+@sess
+async def get_sizes_id(session, id):
+    return await session.scalar(select(Sizes).where(Sizes.id == int(id)))
 
 @sess
 async def get_product_category_id(session, id):
@@ -60,6 +61,12 @@ async def get_product_category_id(session, id):
 async def get_price_product(session, id):
     return await session.scalars(
         select(Price).where(Price.product_id == int(id)).order_by(Price.name))
+
+
+@sess
+async def get_photo_price(session, id):
+    return await session.scalars(
+        select(Photo).where(Photo.price_id == int(id)).order_by(Photo.sort))
 
 @sess
 async def get_price_product_name(session, id):
@@ -139,6 +146,19 @@ async def get_product_brand_count(session, id):
     count = result.scalar()
     return count
 
+@sess
+async def get_product_price_count(session, id):
+    result = await session.execute(select(func.count()).select_from(Price).where(Price.product_id==int(id)))
+    count = result.scalar()
+    return count
+
+@sess
+async def get_price_photo_count(session, id):
+    result = await session.execute(select(func.count()).select_from(Photo).where(Photo.price_id==int(id)))
+    count = result.scalar()
+    return count
+
+
 # @sess
 # async def get_product_price_count(session, id):
 #     result = await session.execute(select(func.count()).select_from(Productbrand).where(Productbrand.product_id==int(id)))
@@ -152,6 +172,10 @@ async def get_product_brand_count(session, id):
 @sess
 async def get_product_id(session, id):
     return await session.scalar(select(Product).where(Product.id == int(id)))
+
+@sess
+async def get_price_id(session, id):
+    return await session.scalar(select(Price).where(Price.id == int(id)))
 
 @sess
 async def get_product_cat(session, catprod):
@@ -179,6 +203,10 @@ async def get_productbrand_pl(session, brand_id, product_id):
     else: return False
 
 @sess
+async def get_about(session):
+    return await session.scalar(select(About))
+
+@sess
 async def del_data(session, data):
     id = data['del_id']
     table = data['switch']
@@ -189,6 +217,8 @@ async def del_data(session, data):
     if table == 'category': table = Category
     if table == 'delivery': table = Delivery
     if table == 'product': table = Product
+    if table == 'price': table = Price
+    if table == 'photo': table = Photo
     text = '❗️ Что-то не так!'
     item = await session.get(table, int(id))
     try:
@@ -197,6 +227,22 @@ async def del_data(session, data):
         text = (True, '❌ Удалено!', data['switch'])
     except Exception as e:
         text = (False, "❗️Не удалено. Есть зависимости 🔀 ", data['switch'])
+    return text
+
+
+@sess
+async def del_item2(session, data):
+    id = data['del_id']
+    table = data['table']
+    if table == 'price': table = Price
+    if table == 'photo': table = Photo
+    item = await session.get(table, int(id))
+    try:
+        await session.delete(item)
+        await session.commit()
+        text = '❌ Удалено!'
+    except Exception as e:
+        text = "❗️Не удалено. Есть зависимости 🔀 "
     return text
 
 @sess
@@ -252,7 +298,7 @@ async def set_category_new(session, data):
 @sess
 async def set_category_up(session, data):
     id = int(data['id'])
-    category = await session.scalar(select(Category).where(Category.name == data['name'], Category.id != id))
+    category = await session.scalar(select(Category).where(and_(Category.name == data['name'], Category.id != id)))
     text = '❌ Такая категория уже есть'
     if not category:
         await session.execute(update(Category).where(Category.id == id).values(name=data['name'],
@@ -282,7 +328,7 @@ async def set_product_new(session, data):
 @sess
 async def set_product_up(session, data):
     id = int(data['id'])
-    product = await session.scalar(select(Product).where(Product.name == data['name'], Product.id != id))
+    product = await session.scalar(select(Product).where(and_(Product.name == data['name'], Product.id != id)))
     text = '❌ Такой товар уже есть'
     if not product:
         await session.execute(update(Product).where(Product.id == id).values(name=data['name'],
@@ -295,7 +341,50 @@ async def set_product_up(session, data):
         text = "👌 Данные продукта обновлены"
     return text
 
+@sess
+async def set_price_new(session, data):
+    price = await session.scalar(select(Price).where(Price.name == data['name']))
+    text = '❌ Такой прайс уже есть'
+    if not price:
+        session.add(Price(name=data['name'],
+                             price=float(round(data['price'], 2)),
+                             price_discount=float(round(data['price_discount'], 2)),
+                             quantity=int(data['quantity']),
+                             product_id=int(data['product_id']),
+                             color_id=int(data['color_id']),
+                             sizes_id=int(data['sizes_id'])
+                             ))
+        await session.commit()
+        text = '👌 Прайс добавлен'
+    return text
 
+@sess
+async def set_price_up(session, data):
+    id = int(data['id'])
+    price = await session.scalar(select(Price).where(and_(Price.name == data['name'], Price.id != id)))
+    text = '❌ Такой прайс уже есть'
+    if not price:
+        await session.execute(update(Price).where(Product.id == id).values(
+                             name=data['name'],
+                             price=float(data['price']),
+                             price_discount=float(data['price_discount']),
+                             quantity=int(data['quantity']),
+                             product_id=int(data['product_id']),
+                             color_id=int(data['color_id']),
+                             sizes_id=int(data['sizes_id'])
+                             ))
+        await session.commit()
+        text = "👌 Данные прайса обновлены"
+    return text
+@sess
+async def set_photo_new(session, data):
+    session.add(Photo(sort=data['sort'],
+                      photo=data['photo'],
+                      price_id=int(data['price_id']),
+                         ))
+    await session.commit()
+    text = '👌 Фото добавлено'
+    return text
 # @sess
 # async def set_subcategory_new(session, data):
 #     session.add(Subcategory(sort=data['sort'], name=data['name'], category_id=int(data['category_id']), photo=data['photo']))
@@ -328,7 +417,7 @@ async def set_delivery_new(session, data):
     session.add(Delivery(name=data['name'], sort=data['sort'], price=data['price'],
                          description=data['description']))
     await session.commit()
-    return '👌 Метор доставки добавлен'
+    return '👌 Метод доставки добавлен'
 
 @sess
 async def set_delivery_up(session, data):
@@ -337,6 +426,35 @@ async def set_delivery_up(session, data):
                          description=data['description']))
     await session.commit()
     return "👌 Данные доставки обновлены"
+
+@sess
+async def set_about_new(session, data):
+    session.add(About(name=data['name'],
+                      description=data['description'],
+                      address=data['address'],
+                      phone=data['phone'],
+                      email=data['email'],
+                      map=data['map'],
+                      logo=data['logo'],
+                      photo=data['photo'],
+                      ))
+    await session.commit()
+
+@sess
+async def set_about_up(session, data):
+    id = int(data['id'])
+    await session.execute(update(About).where(About.id == id).values(
+                    name=data['name'],
+                    description=data['description'],
+                    address=data['address'],
+                    phone=data['phone'],
+                    email=data['email'],
+                    map=data['map'],
+                    logo=data['logo'],
+                    photo=data['photo'],
+                    ))
+    await session.commit()
+
 
 @sess
 async def set_productbrand(session, brand_id, product_id):
@@ -350,7 +468,15 @@ async def del_productbrand(session, brand_id, product_id):
     await session.delete(item)
     await session.commit()
 
-
+@sess
+async def poto_join(session, id):
+    # join(UserRole, UserRole.user_id == User.id)
+    q = select(Price, Product).join(
+        Price,
+        Product.id == Price.product_id
+    ).where(Price.id == int(id))
+    t = await session.execute(q)
+    return t.all()
 
 
 

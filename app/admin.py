@@ -5,13 +5,14 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from app.cmd.paginator import get_paginat_kb
 from app.db.requests import get_users, del_data, get_brands, get_sizes, get_color, get_delivery, get_categorys, \
     get_category_id, get_category_category_id, get_category_subcat_count, get_product, get_product_count, \
-    get_product_category_id, get_product_brand_count, get_price_product, get_product_id
+    get_product_category_id, get_product_brand_count, get_price_product, get_product_id, get_product_price_count, \
+    get_price_id, get_photo_price, poto_join, del_item2, get_price_photo_count
 from app.filter import ChatTypeFilter, IsAdmin
 from aiogram.filters import Command, Filter
 from app.filter import Admin
 import app.keyboards as kb
 from app.setting import pageCD
-from app.states import Del_item
+from app.states import Del_item, DelPhoto, ProductSearch
 
 admin = Router()
 #admin.message.filter(ChatTypeFilter(["private"]), IsAdmin())
@@ -262,22 +263,29 @@ async def product_menu(**kwargs):
         if item.photo != None:
             photo = '🖼'
         brand_count = await get_product_brand_count(item.id)
+        price_count = await get_product_price_count(item.id)
+        if price_count == 0 and brand_count == 0:
+           inDel = InlineKeyboardButton(text="🗑",
+                                 callback_data=f"del_{item.id}_product_{item.name}")
+        else:
+            inDel = InlineKeyboardButton(text="🚯",
+                                         callback_data=f"delNOT")
         builder.row(
             InlineKeyboardButton(text=f"{item.sort}. (🆔 {str(item.id)}) {item.name} {photo}",
                                      callback_data=f"upproduct_product_{item.id}"),
-            InlineKeyboardButton(text=f"(!) {kb.name_menu['price_menu']}",
+            InlineKeyboardButton(text=f"({price_count}) {kb.name_menu['price_menu']}",
                                  callback_data=f"price_{item.id}_{category_id}"),
         )
         builder.row(
             InlineKeyboardButton(text=f"({brand_count}) {kb.name_menu['brand_menu']}",
                                  callback_data=f"prbr_{item.id}_{category_id}"),
-            InlineKeyboardButton(text="🗑",
-                                 callback_data=f"del_{item.id}_product_{item.name}")
-
+            inDel,
         )
     return (builder, len(product), 'product_menu')
 @admin.callback_query(F.data.startswith("product"))
+
 async def send_product_handler(callback:CallbackQuery):
+
     category_id = callback.data.split('_')[1]
     category_id = int(category_id)
     cat_menu_list = await cat_menu_start(category_id)
@@ -289,7 +297,6 @@ async def send_product_handler(callback:CallbackQuery):
 async def price_menu(**kwargs):
     start = kwargs['start']
     end = kwargs['end']
-    print(f'------------------------{kwargs}')
     category_id = kwargs['category_id']
     product_id = kwargs['product_id']
     builder = InlineKeyboardBuilder()
@@ -302,15 +309,25 @@ async def price_menu(**kwargs):
     cat_menu_list = await cat_menu_start(category_id)
     for i in cat_menu_list[0]:
         builder.row(i)
-    builder.row(InlineKeyboardButton(text=f'⬆️ 🎁 {product.name}', callback_data=f'product_{category_id}'))
+    builder.row(InlineKeyboardButton(text=f'⬆️ 🎁 ', callback_data=f'product_{category_id}'))
     builder.row(await kb.add_item(f'price_{product_id}_{category_id}', f"➕ {kb.name_menu['price_menu']}"))
     for item in price[start:end]:
+        photo_count = await get_price_photo_count(item.id)
+        if photo_count == 0:
+            inDel = InlineKeyboardButton(text=f"🗑",
+                                 callback_data=f"dph_{item.id}_price_{product_id}_{category_id}"
+                                               # f"dpr_{item.id}_price_{item.name}_{product_id}_{category_id}"
+                                               f"")
+        else:
+            inDel = InlineKeyboardButton(text="🚯",
+                                         callback_data=f"delNOT")
         builder.row(
-            InlineKeyboardButton(text=f"{item.sort}. (🆔 {str(item.id)}) {item.name}",
-                                     callback_data=f"upprice_price_{item.id}_{product_id}"),
-            InlineKeyboardButton(text="🗑",
-                                 callback_data=f"del_{item.id}_price_{item.name}")
-
+            InlineKeyboardButton(text=f" (🆔 {str(item.id)}) {item.name}",
+                                     callback_data=f"upprice_price_{item.id}_{product_id}_{category_id}"),
+            InlineKeyboardButton(text=f"({photo_count}){kb.name_menu['photo_menu']}",
+                                 callback_data=f"photo_{item.id}_{product_id}_{category_id}"),
+            inDel
+            #callback_data=f"dph_{item.id}_photo_{price_id}_{product_id}_{category_id}")
         )
     return (builder, len(price), 'price_menu')
 @admin.callback_query(F.data.startswith("price"))
@@ -322,6 +339,52 @@ async def send_price_handler(callback:CallbackQuery):
     await callback.message.edit_text(
         text=f"💰 {cat_menu_list[1]} {product.name}",
         reply_markup=await get_paginat_kb(fun=price_menu, category_id=category_id, product_id=product_id),
+    )
+############################################# photo
+async def photo_menu(**kwargs):
+    start = kwargs['start']
+    end = kwargs['end']
+    category_id = kwargs['category_id']
+    product_id = kwargs['product_id']
+    price_id = kwargs['price_id']
+    builder = InlineKeyboardBuilder()
+    photo = await get_photo_price(price_id)
+    # product = await get_product_id(product_id)
+    photo = photo.all()
+
+
+    builder.row(kb.main_menu)
+    cat_menu_list = await cat_menu_start(category_id)
+    for i in cat_menu_list[0]:
+        builder.row(i)
+    builder.row(InlineKeyboardButton(text=f'⬆️ 🎁 ', callback_data=f'product_{category_id}'))
+    builder.row(InlineKeyboardButton(text=f'⬆️ 💰 ', callback_data=f'price_{product_id}_{category_id}'))
+    builder.row(await kb.add_item(f'photo_{price_id}_{product_id}_{category_id}', f"➕ {kb.name_menu['photo_menu']}"))
+    for item in photo[start:end]:
+        builder.row(
+            InlineKeyboardButton(text=f"{item.sort}. (🆔 {str(item.id)})",
+                                     callback_data=f"upphoto_photo_{item.id}_{price_id}_{product_id}_{category_id}"),
+            InlineKeyboardButton(text=f"🗑",
+                                 callback_data=f"dph_{item.id}_photo_{price_id}_{product_id}_{category_id}")
+        )
+    return (builder, len(photo), 'photo_menu')
+@admin.callback_query(F.data.startswith("photo"))
+async def send_photo_handler(callback:CallbackQuery):
+    price_id = callback.data.split('_')[1]
+    product_id = callback.data.split('_')[2]
+    category_id = callback.data.split('_')[3]
+    # p = await poto_join(price_id)
+    price = await get_price_id(price_id)#1
+    # product_id = price.product_id
+    product = await get_product_id(product_id)#2
+    # category = await get_category_id(product.category_id)#3
+    # category_id = category.id
+    # price = await get_price_id(price_id)
+    # product = await get_product_id(product_id)
+    cat_menu_list = await cat_menu_start(category_id)
+    await callback.message.edit_text(
+        text=f"💰 {cat_menu_list[1]} 🎁{product.name} 💰{price.name}",
+        reply_markup=await get_paginat_kb(fun=photo_menu, category_id=category_id, product_id=product_id, price_id=price_id),
     )
 ############################################# del
 @admin.callback_query(F.data.startswith('del_'))
@@ -356,17 +419,124 @@ async def del_item_y(callback: CallbackQuery, state: FSMContext):
     await callback.message.bot.answer_callback_query(callback.id, text=text, show_alert=False)
     await callback.message.edit_text(kb.name_menu[key], reply_markup=await get_paginat_kb(fun=fun))
     await state.clear()
-################################################
+################################################ delfoto
+@admin.callback_query(F.data.startswith('dph_'))
+async def delfoto(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(DelPhoto.del_item)
+    id = callback.data.split('_')[1]
+    table = callback.data.split('_')[2]
+    if table == 'photo':
+       price_id = callback.data.split('_')[3]
+       await state.update_data(price_id=price_id)
+       product_id = callback.data.split('_')[4]
+       category_id = callback.data.split('_')[5]
+    if table == 'price':
+        product_id = callback.data.split('_')[3]
+        category_id = callback.data.split('_')[4]
+    await state.update_data(del_id=id)
+    await state.update_data(table=table)
+    await state.update_data(product_id=product_id)
+    await state.update_data(category_id=category_id)
+    await callback.message.answer(f'Нажмите "DEL", если хотите удалить 🆔 {id}',
+    reply_markup=kb.del_yes_no)
+
+@admin.callback_query(DelPhoto.del_item, F.data == 'clear_msg')
+async def del_item_no(callback: CallbackQuery, state: FSMContext):
+    await callback.message.bot.answer_callback_query(callback.id, text="Отмена 🙅🏻", show_alert=False)
+    await callback.message.delete()
+    await state.clear()
+
+@admin.callback_query(DelPhoto.del_item, F.data == 'Y')
+async def delfoto_y(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    del_answeer = await del_item2(data)
+    key = data['table'] + '_menu'
+    fun = funs_dic[key]
+    await callback.message.bot.answer_callback_query(callback.id, text=del_answeer, show_alert=False)
+    if data['table'] == 'photo':
+        await callback.message.edit_text(kb.name_menu[key],
+                                         reply_markup=await get_paginat_kb(fun=fun,
+                                                                           category_id=data['category_id'],
+                                                                           product_id=data['product_id'],
+                                                                           price_id=data['price_id']
+                                                                           ))
+    if data['table'] == 'price':
+        await callback.message.edit_text(kb.name_menu[key],
+                                         reply_markup=await get_paginat_kb(fun=fun,
+                                                                           category_id=data['category_id'],
+                                                                           product_id=data['product_id'],
+                                                                           ))
+    await state.clear()
+################################################ about
+# @admin.callback_query(F.data.startswith("upabout"))
+# async def send_delivery_handler(callback:CallbackQuery):
+#     await callback.message.edit_text(
+#         text=kb.name_menu['about_menu'],
+#         reply_markup=kb.,
+#     )
+################################################ dpr dpr_{item.id}_price_{item.name}_{product_id}_{category_id}
+# @admin.callback_query(F.data.startswith('dph_'))
+# async def delfoto(callback: CallbackQuery, state: FSMContext):
+#     await state.set_state(DelPhoto.del_item)
+#     id = callback.data.split('_')[1]
+#     table = callback.data.split('_')[2]
+#     product_id = callback.data.split('_')[3]
+#     category_id = callback.data.split('_')[4]
+#     await state.update_data(del_id=id)
+#     await state.update_data(table=table)
+#     await state.update_data(price_id=price_id)
+#     await state.update_data(product_id=product_id)
+#     await state.update_data(category_id=category_id)
+#     await callback.message.answer(f'Нажмите "DEL", если хотите удалить 🆔 {id} фото',
+#     reply_markup=kb.del_yes_no)
+#
+# @admin.callback_query(DelPhoto.del_item, F.data == 'clear_msg')
+# async def del_item_no(callback: CallbackQuery, state: FSMContext):
+#     await callback.message.bot.answer_callback_query(callback.id, text="Отмена 🙅🏻", show_alert=False)
+#     await callback.message.delete()
+#     await state.clear()
+#
+# @admin.callback_query(DelPhoto.del_item, F.data == 'Y')
+# async def delfoto_y(callback: CallbackQuery, state: FSMContext):
+#     data = await state.get_data()
+#     del_answeer = await del_photo(data)
+#     key = data['table'] + '_menu'
+#     fun = funs_dic[key]
+#     await callback.message.bot.answer_callback_query(callback.id, text=del_answeer, show_alert=False)
+#     await callback.message.edit_text(kb.name_menu[key],
+#                                      reply_markup=await get_paginat_kb(fun=fun,
+#                                                                        category_id=data['category_id'],
+#                                                                        product_id=data['product_id'],
+#                                                                        price_id=data['price_id']))
+#     await state.clear()
+##############################################
+##############################################
+
+@admin.callback_query(Del_item.del_item, F.data == 'Y')
+async def del_item_y(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    del_answeer = await del_data(data)
+    del_flag = del_answeer[0]
+    text = del_answeer[1]
+    switch = del_answeer[2]
+    key = switch + '_menu'
+    fun = funs_dic[key]
+    await callback.message.bot.answer_callback_query(callback.id, text=text, show_alert=False)
+    await callback.message.edit_text(kb.name_menu[key], reply_markup=await get_paginat_kb(fun=fun))
+    await state.clear()
 
 @admin.callback_query(pageCD.filter())
 async def products_pagination_callback(callback: CallbackQuery, callback_data: pageCD):
     page = callback_data.page
     pages = callback_data.pages
     fun = funs_dic[callback_data.fun]
+    category_id = callback_data.category_id
+    product_id = callback_data.product_id
+    price_id = callback_data.price_id
     await callback.message.edit_reply_markup(
-    reply_markup=await get_paginat_kb(page=page, pages=pages, fun=fun)
+    reply_markup=await get_paginat_kb(page=page, pages=pages, fun=fun, category_id=category_id, product_id=product_id, price_id=price_id)
 )
-
+#category_id=0, product_id=0, price_id=0
 @admin.callback_query(F.data == "ok_page")
 async def process_callback(callback_query: CallbackQuery):
     await callback_query.message.bot.answer_callback_query(callback_query.id, text="Страница уже открыта", show_alert=False)
@@ -374,12 +544,12 @@ async def process_callback(callback_query: CallbackQuery):
 
 @admin.callback_query(F.data == "delNOT")
 async def process_callback(callback_query: CallbackQuery):
-    await callback_query.message.bot.answer_callback_query(callback_query.id, text="Удалите товары и подкатегории",
+    await callback_query.message.bot.answer_callback_query(callback_query.id, text=kb.name_menu['connect_menu'],
                                                            show_alert=True)
 
 funs_dic={'brand_menu':brand_menu,'sizes_menu':sizes_menu, 'users_menu':users_menu,
           'color_menu':color_menu, 'delivery_menu':delivery_menu, 'category_menu':category_menu,
-          'product_menu':product_menu, 'price_menu':price_menu
+          'product_menu':product_menu, 'price_menu':price_menu, 'photo_menu':photo_menu
           }
 
 
