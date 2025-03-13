@@ -5,7 +5,7 @@ from sqlalchemy import null
 from app.admin import product_menu, cat_menu_start, price_menu, color_menu, photo_menu
 from app.cmd.paginator import get_paginat_kb
 from app.db.requests import get_category_id, get_product_id, set_product_new, set_product_up, get_price_id, \
-    get_color_id, get_sizes_id, get_color, get_sizes, set_price_new, set_price_up, set_photo_new
+    get_color_id, get_sizes_id, get_color, get_sizes, set_price_new, set_price_up, set_photo_new, get_photo_id
 from app.filter import Admin
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 from app.states import UpPrice, UpPhoto
@@ -32,7 +32,20 @@ async def photo_new(callback:CallbackQuery, state: FSMContext):
                                   reply_markup=await kb.kb_cancel(f'price_{product_id}_{category_id}'),
                                   parse_mode='html')
 
-################################# upphoto_
+################################# upphoto_  reply_markup=builder.as_markup()  photo_{item.id}_{product_id}_{category_id}"
+
+@newphoto.callback_query(F.data.startswith('upphoto'))
+async def photo_new(callback:CallbackQuery, state: FSMContext):
+    photo_id = callback.data.split('_')[1]
+    price_id = callback.data.split('_')[2]
+    product_id = callback.data.split('_')[3]
+    category_id = callback.data.split('_')[4]
+
+    photo = await get_photo_id(photo_id)
+    await callback.message.answer_photo(photo.photo, caption=kb.name_menu['photo_menu'],
+        reply_markup= await kb.menu_us("🎁", f"photo_{price_id}_{product_id}_{category_id}"),
+                                        parse_mode='html')
+
 ################################# sort
 @newphoto.message(UpPhoto.sort, F.text)
 async def photo_new_sort(message: Message, state: FSMContext):

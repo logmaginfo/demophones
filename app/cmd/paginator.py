@@ -8,7 +8,7 @@ from app.setting import pageCD
 from aiogram.types import Message, CallbackQuery, InputFile
 
 paginat = Router()
-paginat.message.filter(Admin())
+# paginat.message.filter(Admin())
 
 async def get_paginat_kb(page: int = 0,  pages:int = 2, fun=None, category_id=0, product_id=0, price_id=0) -> InlineKeyboardMarkup:
     page = int(page)

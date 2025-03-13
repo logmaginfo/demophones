@@ -4,6 +4,7 @@ from dotenv import load_dotenv #pip install python-dotenv
 import asyncio
 from aiogram import Bot, Dispatcher
 from app.admin import admin
+from app.cmd.cmd import cmdPrivate
 from app.cmd.paginator import paginat
 from app.new.about import newabout
 from app.new.brand import newbrand
@@ -32,8 +33,8 @@ async def main():
     dp.startup.register(on_startup)
     # await bot.delete_my_commands(scope=BotCommandScopeAllPrivateChats())
     # await bot.delete_my_commands(scope=BotCommandScopeAllGroupChats())
-    #await bot.set_my_commands(commands=cmdPrivate, scope=BotCommandScopeAllPrivateChats())
-    #await bot.set_my_commands(commands=cmdGrup, scope=BotCommandScopeAllGroupChats())
+    await bot.set_my_commands(commands=cmdPrivate, scope=BotCommandScopeAllPrivateChats())
+    # await bot.set_my_commands(commands=cmdGrup, scope=BotCommandScopeAllGroupChats())
     await dp.start_polling(bot)
 
 async def on_startup(dispatcher):
