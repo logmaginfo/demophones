@@ -1,4 +1,4 @@
-# from aiogram.types import BotCommand
+from aiogram.types import BotCommand
 #
 # cmdPrivate = [
 #     BotCommand(command='wwadmin', description='Des Admin'),
@@ -9,3 +9,6 @@
 #     BotCommand(command='menu', description='Посмотреть меню'),
 #     BotCommand(command='admin', description='Des Admin'),
 # ]
+cmdPrivate = [
+    BotCommand(command='start', description='Посмотреть меню'),
+]

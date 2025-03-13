@@ -9,7 +9,7 @@ name_menu ={
             'sizes_menu':'📶 Размеры',
             'color_menu':'🔵 Цвета',
             'delivery_menu':'🚚 Доставки',
-            'category_menu':'📋 Категории',
+            'category_menu':'📋 Каталог',
             'subcategory_menu':'📋 ПодКатегории',
             'product_menu':'🎁 Товары',
             'price_menu':'💰 Прайсы',
@@ -21,11 +21,36 @@ name_menu ={
             'recordNo_menu':'❌ Такая запись уже есть',
             'recordAdd_menu':'👌 Данные добавлены',
             'recordUp_menu':'👌 Данные обновлены',
-            'about_menu':'☎️ О нас',
-            'next_menu':'⏩ Пропустить'
+            'about_menu':'🪤 О нас',
+            'next_menu':'⏩ Пропустить',
+            'name_menu':'✔️ Название',
+            'desc_menu':'📄 О нас',
+            'address_menu': '🏠 Адрес/режим работы',
+            'phone_menu': '☎ Телефон',
+            'email_menu': '📪 email',
+            'logo_menu': '🎯 Логотип',
+            'map_menu': '🗺 Карта',
+            'contact_menu': '🌐 Контакты',
+            'basket_menu': '🧺 Корзина',
+            'order_menu': '📄📎 Заказ',
             }
+main_menu = InlineKeyboardButton(text=name_menu['main_menu'], callback_data='admin')
 
+start_menu = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=name_menu['name_menu'], callback_data='aboutname'),
+            InlineKeyboardButton(text=name_menu['desc_menu'], callback_data='aboutdesc')],])
 
+about = InlineKeyboardMarkup(inline_keyboard=[
+        [main_menu],
+        [InlineKeyboardButton(text=name_menu['name_menu'], callback_data='aboutname'),
+            InlineKeyboardButton(text=name_menu['desc_menu'], callback_data='aboutdesc')],
+            [InlineKeyboardButton(text=name_menu['address_menu'], callback_data='aboutaddress'),
+            InlineKeyboardButton(text=name_menu['phone_menu'], callback_data='aboutphone')],
+            [InlineKeyboardButton(text=name_menu['email_menu'], callback_data='aboutemail'),
+            InlineKeyboardButton(text=name_menu['logo_menu'], callback_data='aboutlogo')],
+            [InlineKeyboardButton(text=name_menu['map_menu'], callback_data='aboutmap'),
+            InlineKeyboardButton(text=name_menu['photo_menu'], callback_data='aboutphoto')],
+            ])
 main = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=name_menu['users_menu'], callback_data='users')],
         [InlineKeyboardButton(text=name_menu['sizes_menu'], callback_data='sizes')],
@@ -37,9 +62,6 @@ main = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=name_menu['about_menu'], callback_data='about')],
         # [InlineKeyboardButton(text='🎁 Товары', callback_data='product')],
 ])
-#[InlineKeyboardButton(text='Главное меню', callback_data='admin')]
-
-main_menu = InlineKeyboardButton(text=name_menu['main_menu'], callback_data='admin')
 
 main_top = InlineKeyboardMarkup(inline_keyboard=[[main_menu]])
 
@@ -47,13 +69,14 @@ main_top_cancel = InlineKeyboardMarkup(inline_keyboard=[
     [main_menu, InlineKeyboardButton(text=name_menu['cancel'], callback_data='about')]
     ])
 
-
-
 async def menu_item(text, call):
      return InlineKeyboardButton(text=text, callback_data=call)
 
 async def add_item(i, text='➕ Добавить'):
      return InlineKeyboardButton(text=text, callback_data=f'add_{i}')
+
+async def menu_us(text, callback_data):
+    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=text, callback_data=callback_data)]])
 
 cancel = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='🙅🏻 Отмена', callback_data='admin')]])
@@ -63,8 +86,8 @@ next = InlineKeyboardMarkup(inline_keyboard=[
          InlineKeyboardButton(text='⏩ Пропустить', callback_data='next')]])
 
 main_top_cancel_next = InlineKeyboardMarkup(inline_keyboard=[
-    [main_menu,
-     InlineKeyboardButton(text=name_menu['cancel'], callback_data='about'),
+    [
+     InlineKeyboardButton(text=name_menu['about_menu'], callback_data='about'),
      InlineKeyboardButton(text=name_menu['next_menu'], callback_data='next'),
      ]
     ])

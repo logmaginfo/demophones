@@ -13,6 +13,7 @@ from app.filter import Admin
 import app.keyboards as kb
 from app.setting import pageCD
 from app.states import Del_item, DelPhoto, ProductSearch
+from app.user import product_menu_user
 
 admin = Router()
 #admin.message.filter(ChatTypeFilter(["private"]), IsAdmin())
@@ -363,7 +364,7 @@ async def photo_menu(**kwargs):
     for item in photo[start:end]:
         builder.row(
             InlineKeyboardButton(text=f"{item.sort}. (🆔 {str(item.id)})",
-                                     callback_data=f"upphoto_photo_{item.id}_{price_id}_{product_id}_{category_id}"),
+                                     callback_data=f"upphoto_{item.id}_{price_id}_{product_id}_{category_id}"),
             InlineKeyboardButton(text=f"🗑",
                                  callback_data=f"dph_{item.id}_photo_{price_id}_{product_id}_{category_id}")
         )
@@ -373,16 +374,20 @@ async def send_photo_handler(callback:CallbackQuery):
     price_id = callback.data.split('_')[1]
     product_id = callback.data.split('_')[2]
     category_id = callback.data.split('_')[3]
-    # p = await poto_join(price_id)
-    price = await get_price_id(price_id)#1
+    p = await poto_join(price_id)
+    price = p[0]
+    product = p[1]
+    # print(f'-------------->>>>>{p}')
+    # price = await get_price_id(price_id)#1
     # product_id = price.product_id
-    product = await get_product_id(product_id)#2
+    # product = await get_product_id(product_id)#2
     # category = await get_category_id(product.category_id)#3
     # category_id = category.id
     # price = await get_price_id(price_id)
     # product = await get_product_id(product_id)
     cat_menu_list = await cat_menu_start(category_id)
-    await callback.message.edit_text(
+    # print(f"---------------{price_id=}{product_id=}{category_id=}")
+    await callback.message.answer(
         text=f"💰 {cat_menu_list[1]} 🎁{product.name} 💰{price.name}",
         reply_markup=await get_paginat_kb(fun=photo_menu, category_id=category_id, product_id=product_id, price_id=price_id),
     )
@@ -549,7 +554,8 @@ async def process_callback(callback_query: CallbackQuery):
 
 funs_dic={'brand_menu':brand_menu,'sizes_menu':sizes_menu, 'users_menu':users_menu,
           'color_menu':color_menu, 'delivery_menu':delivery_menu, 'category_menu':category_menu,
-          'product_menu':product_menu, 'price_menu':price_menu, 'photo_menu':photo_menu
+          'product_menu':product_menu, 'price_menu':price_menu, 'photo_menu':photo_menu,
+          'product_menu_user':product_menu_user,
           }
 
 

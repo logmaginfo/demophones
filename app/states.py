@@ -67,6 +67,7 @@ class ProductSearch(StatesGroup):
     on = State()
 
 class UpAbout(StatesGroup):
+    us = State()
     name = State()
     description = State()
     address = State()
@@ -75,5 +76,18 @@ class UpAbout(StatesGroup):
     map = State()
     logo = State()
     photo = State()
+
+class Order(StatesGroup):
+    status = State()
+    users_id = State()
+    product_id = State()
+    price_id = State()
+    delivery_id = State()
+    color_id = State()
+    sizes_id = State()
+    price = State()
+    delivery = State()
+    quantity = State()
+    comment = State()
 
 

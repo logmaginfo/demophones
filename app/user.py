@@ -1,22 +1,456 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InputFile
+from aiogram.types import Message, CallbackQuery, InputFile, InlineKeyboardButton
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F, types, Bot
-from app.filter import ChatTypeFilter
-from app.db.requests import set_user
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.utils.media_group import MediaGroupBuilder
 
+from app.cmd.paginator import get_paginat_kb
+from app.filter import ChatTypeFilter
+from app.db.requests import set_user, get_about, get_cat, get_category_category_id, get_category_subcat_count, \
+    get_product_count, get_category_id, get_category_category_id_product, get_product_id, get_products_id, get_price_id, \
+    get_price_product, get_color_id, get_sizes_id, get_price_photo_count, get_photo_id, get_photo_price_id, get_user_id, \
+    get_user_tg_id, get_basket_user_product, set_basket, get_basket, get_basket_all, get_basket_price_all
+import app.keyboards as kb
+from aiogram.types import FSInputFile
 
 user = Router()
 # user.message.filter(ChatTypeFilter(["group", "supergroup"]))
 # user.edited_message.filter(ChatTypeFilter(["group", "supergroup"]))
+
+@user.callback_query(F.data == "start")
+@user.message(F.text == "start")
 @user.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext):
-    await message.answer('HY')
-    await set_user(message)
+async def cmd_start(data, state: FSMContext):
     await state.clear()
+    try:
+        if isinstance(data, types.Message):
+            message =  data
+        elif isinstance(data, types.CallbackQuery):
+            message =  data.message
+    except Exception as e: pass
+    await set_user(message)
+    about = await get_about()
+    builder = InlineKeyboardBuilder()
+    name = kb.name_menu['name_menu']
+    phone = kb.name_menu['phone_menu']
+    email = kb.name_menu['email_menu']
+    logo = FSInputFile("app/img/logo.png")
+    if about:
+        if about.name:
+            name = about.name
+        if about.address:
+            builder.add(InlineKeyboardButton(text=f'{kb.name_menu['desc_menu']} {kb.name_menu['address_menu']}',
+                                             callback_data=f"co_about_address"))
+        if about.phone:
+            phone = f'☎ {about.phone}'
+        if about.email:
+            email = f'📩 {about.email}'
+        if about.logo:
+            logo = about.logo
+
+    cat = await get_cat()
+    if cat:
+        builder.add(InlineKeyboardButton(text=f'{kb.name_menu['category_menu']} ',
+                                         callback_data=f"cocat_0"))
+    builder.add(InlineKeyboardButton(text=f'{kb.name_menu['basket_menu']} ',
+                                     callback_data=f"basket"))
+
+    builder.adjust(2, 2)
+    await message.answer_photo(logo)
+    await message.answer(f'<b>{name} {phone} {email}</b>',
+                               reply_markup=builder.as_markup(), parse_mode='html')
+@user.callback_query(F.data=="co_about_address")
+async def send_co_about(callback:CallbackQuery):
+    about = await get_about()
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text=f'{kb.name_menu['main_menu']} ',
+                                     callback_data=f"start"))
+    name = kb.name_menu['name_menu']
+    phone = kb.name_menu['phone_menu']
+    email = kb.name_menu['email_menu']
+    description = kb.name_menu['desc_menu']
+    address = kb.name_menu['address_menu']
+    photo = kb.name_menu['phone_menu']
+    email = kb.name_menu['email_menu']
+    logo = FSInputFile("app/img/logo.png")
+    map = kb.name_menu['map_menu']
+    photo = kb.name_menu['photo_menu']
+    text = ""
+    if about:
+        if about.name:
+            name = about.name
+            text = f"{text} <b>{name}</b>\n"
+        if about.description:
+            description = about.description
+            text = f"{text} {description}\n"
+        if about.address:
+            address = about.address
+            text = f"{text} {address}\n"
+        if about.phone:
+            phone = f'☎ {about.phone}'
+            text = f"{text} {phone}\n"
+        if about.email:
+            email = f'📩 {about.email}'
+            text = f"{text} {email}\n"
+        if about.logo:
+            logo = about.logo
+        if about.map:
+            map = about.map
+            builder.add(InlineKeyboardButton(text=f'{kb.name_menu['map_menu']} ',
+                                             callback_data=f"co_about_map"))
+
+    builder.adjust(2, 2)
+    await callback.message.answer_photo(logo, caption=f'{text}',
+                                        reply_markup=builder.as_markup(),
+                                        parse_mode='html')
 
 
+@user.callback_query(F.data == "co_about_map")
+async def send_co_about(callback: CallbackQuery):
+    about = await get_about()
+    if about:
+        if about.photo and about.map:
+            photo = about.photo
+            await callback.message.answer_photo(photo, caption=f'{kb.name_menu['photo_menu']}',
+                                                parse_mode='html')
+        if about.map:
+            map = about.map
+            await callback.message.answer_photo(map, caption=f'{kb.name_menu['map_menu']}',
+                                                reply_markup=await kb.menu_us(kb.name_menu['main_menu'],
+                                                                              "start"),
+                                                parse_mode='html')
+
+async def cat_menu_user(category_id, cat_menu_list:list | None = None, cat_menu_str:list | None = None):
+
+    if int(category_id) != 0:
+
+         main_category = await get_category_id(category_id)
+         cat_menu_str.insert(0, f"{main_category.name}")
+         if main_category.category_id != 0:
+             top_main_category = await get_category_id(main_category.category_id)
+
+             cat_menu_list.insert(0,
+                         InlineKeyboardButton(text=f"⬆️ {top_main_category.name}",
+                                              callback_data=f'cocat_{main_category.category_id}'))
+         else:
+             cat_menu_str.insert(0, f"📋")
+             cat_menu_list.insert(0,
+                 InlineKeyboardButton(text=f"⬆️ 📋",
+                                      callback_data=f'cocat_0'))
+         if main_category.category_id != 0:
+            await cat_menu_user(main_category.category_id , cat_menu_list, cat_menu_str)
+    return (cat_menu_list, cat_menu_str)
+async def cat_menu_start_user(category_id):
+    cat_menu_list = []
+    cat_menu_str = []
+    res = await cat_menu_user(category_id, cat_menu_list, cat_menu_str)
+    res_str = ' / '.join(res[1])
+    if res_str == '': res_str = kb.name_menu['category_menu']
+    return (res[0], res_str)
+
+async def product_menu_user(**kwargs):
+    start = kwargs['start']
+    end = kwargs['end']
+    category_id = kwargs['category_id']
+    product = await get_products_id(category_id)
+
+
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=kb.name_menu['main_menu'], callback_data="start"))
+    category = await get_category_category_id(category_id)
+    category = category.all()
+    cat_menu_list = await cat_menu_start_user(category_id)
+
+    # builder.row(*cat_menu_list[0])
+
+    for i in cat_menu_list[0]:
+        builder.row(i)
+    for item in category:
+        builder.row(
+            InlineKeyboardButton(text=f"📋 {item.name}  ",
+                                callback_data=f"cocat_{item.id}"),
+        )
+    if product:
+        product = product.all()
+        for item in product[start:end]:
+            builder.row(
+                InlineKeyboardButton(text=f"🎁 {item.name} ",
+                                    callback_data=f"copro_{item.id}_{category_id}"),
+            )
+    else:
+        return True
+    builder.as_markup()
+    return (builder, len(product), 'product_menu_user')
+
+# async def category_menu_user(**kwargs):
+#     start = kwargs['start']
+#     end = kwargs['end']
+#     category_id = kwargs['category_id']
+#
+#
+#     builder = InlineKeyboardBuilder()
+#     category = await get_category_category_id(category_id)
+#     category = category.all()
+#
+#     print(f'-----------------{category}')
+#     # builder.row(await kb.menu_us(kb.name_menu['main_menu'],"start"))
+#     builder.row(InlineKeyboardButton(text=kb.name_menu['main_menu'], callback_data="start"))
+#
+#     cat_menu_list = await cat_menu_start_user(category_id)
+#     for i in cat_menu_list[0]:
+#         builder.row(i)
+#
+#     for item in category[start:end]:
+#         # category_slave_count = await get_category_subcat_count(item.id)
+#         product_slave_count = await get_product_count(item.id)
+#         product_slave_count_num = ''
+#         if int(product_slave_count) > 0:
+#             product_slave_count_num = f'(🎁{product_slave_count})'
+#         # photo = ''
+#         # if item.photo != None:
+#         #     photo = '🖼'
+#         builder.row(
+#             InlineKeyboardButton(text=f"  {item.name} {product_slave_count_num} ",
+#                                 callback_data=f"cocat_{item.id}"),
+#         )
+#     # await product_menu_user(start=start, end=end, category_id=category_id)
+#     # await get_paginat_kb(res)
+#     builder.as_markup()
+#     return (builder, len(category), 'category_menu_user')
+@user.callback_query(F.data.startswith("cocat"))
+async def send_co_about(callback: CallbackQuery):
+    category_id = callback.data.split('_')[1]
+    category_id = int(category_id)
+    category = await get_category_id(category_id)
+    cat_menu_list = await cat_menu_start_user(category_id)
+    if category:
+        if category.photo:
+            await callback.message.answer_photo(category.photo, caption=f"{cat_menu_list[1]}",
+                reply_markup=await get_paginat_kb(fun=product_menu_user, category_id=category_id), )
+        else:
+            await callback.message.answer(
+                text=f"{cat_menu_list[1]}",
+                reply_markup=await get_paginat_kb(fun=product_menu_user, category_id=category_id), )
+    else:
+        await callback.message.answer(
+                text= f"{cat_menu_list[1]}",
+                reply_markup=await get_paginat_kb(fun=product_menu_user, category_id=category_id),)
+
+async def quantity_basket(user_id, price_id, product_id, category_id, basketact, button_text,
+                          price_id_basket, menu_quantity, menu):
+    quantity = await set_basket(user_id, price_id, product_id, basketact, price_id_basket)
+
+    button_basket = []#copro
+    if menu_quantity == 'copro' or (menu_quantity == 'basket' and quantity != 0):
+        button_basket.append(
+            InlineKeyboardButton(text=f"➕",
+                                 callback_data=f"{menu_quantity}_{product_id}_{category_id}_{price_id}_plus_{price_id}")
+        )
+        button_basket.append(
+            InlineKeyboardButton(text=f"🧺: {quantity}шт {button_text} ",
+                                 callback_data=f"{menu}_{product_id}_{category_id}")
+        )
+        button_basket.append(
+            InlineKeyboardButton(text=f"➖",
+                                 callback_data=f"{menu_quantity}_{product_id}_{category_id}_{price_id}_minus_{price_id}")
+        )
+    return button_basket
+
+@user.callback_query(F.data.startswith("copro"))
+async def send_co_copro(callback: CallbackQuery):
+    product_id = int(callback.data.split('_')[1])
+    category_id = int(callback.data.split('_')[2])
+    tg_id = callback.message.from_user.id
+    user_id = await get_user_tg_id(tg_id)
+    user_id = user_id.id
+    price_id_basket = ''
+    basket = ''
+    button_basket =[]
+    try:
+        price_id = callback.data.split('_')[3]
+        basket = callback.data.split('_')[4]
+        price_id_basket = callback.data.split('_')[5]
+    except Exception as e: pass
+
+    product = await get_product_id(product_id)
+    builder = InlineKeyboardBuilder()
+
+    category = await get_category_category_id(category_id)
+    category = category.all()
+    cat_menu_list = await cat_menu_start_user(category_id)
+    catbui = []
+    for i in cat_menu_list[0]:
+        # builder.row(i)
+        catbui.append(i)
+    # builder.row(*cat_menu_list[0])
+    bui = []
+    for item in category:
+        bui.append(
+            InlineKeyboardButton(text=f"📋 {item.name}  ",
+                                callback_data=f"cocat_{item.id}"),
+        )
+
+    # builder.row(*list(reversed(bui)))
+    # builder.row(*list(reversed(catbui)))
+    # builder.row(InlineKeyboardButton(text=kb.name_menu['main_menu'], callback_data="start"))
+
+    text = ''
+
+    if product:
+
+        name = product.name
+        description = product.description
+        text = (f'<b>{name}</b>\n'
+                f'{description}\n')
+        price = await get_price_product(product_id)
+        price = price.all()
+        for pr in price:
+            button_text = ''
+            tprice = pr.price
+            button_tprice = pr.price
+            if pr.price_discount:
+                if pr.price_discount > 0:
+                    tprice = f"<s>{pr.price}</s> {pr.price_discount}"
+                    button_tprice = pr.price_discount
+            text = f"{text} Цена: <b>{tprice} ₽</b> "
+            # button_text = f"{button_text} {button_tprice}₽"
+            if pr.color_id:
+                color = await get_color_id(pr.color_id)
+                text = f"{text} {color.name} "
+                button_text = f"{button_text} {color.name}"
+            if pr.sizes_id:
+                sizes = await get_sizes_id(pr.sizes_id)
+                text = f"{text} {sizes.name} "
+                button_text = f"{button_text} {sizes.name}"
+            if pr.quantity:
+                text = f"{text} / В наличии: {pr.quantity} шт."
+            text = f"{text}\n"
+            photo_count = await get_price_photo_count(pr.id)
+            if photo_count>0:
+                builder.row(InlineKeyboardButton(text=f"{kb.name_menu['photo_menu']} / {button_text} ",
+                                                 callback_data=f"cophot_{pr.id}_{product_id}_{category_id}"))
+                button_text = ''
+            button_basket=(await quantity_basket(user_id, pr.id, product_id, category_id, basket, button_text,
+                                                 price_id_basket, 'copro', 'basket'))
+            builder.row(*button_basket)
+
+        if product.photo:
+
+            if int(category_id) != 0:
+                category_now = await get_category_id(category_id)
+                builder.row(InlineKeyboardButton(text=f"📋 {category_now.name}", callback_data=f"cocat_{category_id}"))
+
+            await callback.message.answer_photo(product.photo, caption=f"{cat_menu_list[1]} / {product.name}\n"
+                                                                       f"{text}",
+                                                reply_markup=builder.as_markup(), parse_mode='html')
+        else:
+
+            if int(category_id) != 0:
+                category_now = await get_category_id(category_id)
+                builder.row(InlineKeyboardButton(text=f"📋 {category_now.name}", callback_data=f"cocat_{category_id}"))
+
+            await callback.message.answer(
+                text=f"{cat_menu_list[1]} / {product.name}\n"
+                     f"{text}",
+                reply_markup=builder.as_markup(), parse_mode='html')
+    else:
+        builder.row(*button_basket)
+        if int(category_id) != 0:
+            category_now = await get_category_id(category_id)
+            builder.row(InlineKeyboardButton(text=f"📋 {category_now.name}", callback_data=f"cocat_{category_id}"))
+
+        await callback.message.answer(
+            text=f"{cat_menu_list[1]} / {product.name}\n"
+                 f"{text}",
+            reply_markup=builder.as_markup(), parse_mode='html')
+
+
+@user.callback_query(F.data.startswith("cophot"))
+async def send_co_copro(callback: CallbackQuery):
+    price_id = int(callback.data.split('_')[1])
+    product_id = int(callback.data.split('_')[2])
+    category_id = int(callback.data.split('_')[3])
+    photo = await get_photo_price_id(price_id)
+    photo = photo.all()
+    # print(f"-----------{photo_media}")
+    media_group = MediaGroupBuilder(caption="Media group caption")
+    for ph in photo:
+        media_group.add_photo(type="photo", media=ph.photo)
+    await callback.message.answer_media_group(media=media_group.build())
+    await callback.message.answer("Вернуться к товару:",
+                                        reply_markup=await kb.menu_us("⬅️ 🎁",
+                                                                      f"copro_{product_id}_{category_id}"),
+                                        parse_mode='html')
+
+
+@user.callback_query(F.data.startswith("basket"))
+async def send_co_copro(callback: CallbackQuery):
+    price_id_basket = ''
+    basketact = ''
+    try:
+        basketact = callback.data.split('_')[4]
+        price_id_basket = callback.data.split('_')[5]
+    except Exception as e: pass
+    tg_id = callback.message.from_user.id
+    user = await get_user_tg_id(tg_id)
+    basket = await get_basket(user.id)
+    builder = InlineKeyboardBuilder()
+
+    for bskt in basket.all():
+        product = await get_product_id(bskt.product_id)
+        price = await get_price_id(bskt.price_id)
+        category = await get_category_id(product.category_id)
+        # text = f'<b>{product.name}</b>\n'
+        button_text = product.name
+        # tprice = price.price
+        button_tprice = price.price
+        if price.price_discount:
+            if price.price_discount > 0:
+                # tprice = f"<s>{price.price}</s> {price.price_discount}"
+                button_tprice = price.price_discount
+        button_text = f"{button_text} {button_tprice}₽"
+        # text = f'{text} tprice\n'
+        if price.color_id:
+            color = await get_color_id(price.color_id)
+            button_text = f"{button_text} {color.name}"
+            # text = f"{text} {color.name} "
+        if price.sizes_id:
+            sizes = await get_sizes_id(price.sizes_id)
+            button_text = f"{button_text} {sizes.name}"
+            # text = f"{text} {sizes.name} "
+        button_copro =InlineKeyboardButton(text=f" {button_text} ",
+                             callback_data=f"copro_{product.id}_{category.id}")
+        button_text = ''
+        #  if menu_quantity == 'copro' or (menu_quantity == 'basket' and quantity != 0):
+        button_basket = await quantity_basket(user.id, bskt.price_id, bskt.product_id, product.category_id,
+                              basketact, button_text, price_id_basket, 'basket', 'copro')
+
+        if len(button_basket)>0: builder.row(button_copro)
+        builder.row(*button_basket)
+
+    quantity_all = await get_basket_all(user.id)
+    price_all = await get_basket_price_all(user.id)
+    if quantity_all>0:
+       builder.row(InlineKeyboardButton(text=f'{kb.name_menu['order_menu']} ',
+                                     callback_data=f"order"))
+    builder.row(InlineKeyboardButton(text=f'{kb.name_menu['main_menu']} ',
+                                     callback_data=f"start"))
+    await callback.message.answer(
+        text=f"{kb.name_menu['basket_menu']} {quantity_all}шт. {price_all}₽",
+        reply_markup=builder.as_markup(), parse_mode='html')
+
+    # await callback.message.edit_text(
+    #     text = f"{cat_menu_list[1]} ",
+    #     reply_markup=await get_paginat_kb(fun=category_menu_user, category_id=category_id),
+    # )
+    # product_slave_count = await get_product_count(category_id)
+    # if product_slave_count>0:
+    #     await callback.message.answer(
+    #         text= f"{kb.name_menu['product_menu']}",
+    #         reply_markup=await get_paginat_kb(fun=product_menu_user, category_id=category_id),
+    #     )
 # @user.message(Command("admin"))
 # async def get_admins(message: types.Message, bot: Bot):
 #     chat_id = message.chat.id

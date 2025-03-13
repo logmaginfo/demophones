@@ -133,12 +133,12 @@ class Delivery(Base):
     price: Mapped[float] = mapped_column(default=0)
 
 
-class basket(Base):
+class Basket(Base):
     __tablename__ = 'basket'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    users_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
-    product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=False)
+    users_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=True)
     price_id: Mapped[int] = mapped_column(ForeignKey('price.id'), nullable=True)
     quantity: Mapped[int]
 
@@ -147,16 +147,18 @@ class Orders(Base):
     __tablename__ = 'orders'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    status: Mapped[str] = mapped_column(String(50))
-    users_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
-    product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=True)
+    users_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=True)
+    price_id: Mapped[int] = mapped_column(ForeignKey('price.id'), nullable=True)
+    delivery_id: Mapped[int] = mapped_column(ForeignKey('delivery.id'), nullable=True)
+    color_id: Mapped[int] = mapped_column(ForeignKey('color.id'), nullable=True)
+    sizes_id: Mapped[int] = mapped_column(ForeignKey('sizes.id'), nullable=True)
     price: Mapped[float] = mapped_column(default=0)
-    delivery: Mapped[float] = mapped_column(default=0)
-    quantity: Mapped[int]
-    color_id: Mapped[int] = mapped_column(ForeignKey('color.id'), nullable=False)
-    sizes_id: Mapped[int] = mapped_column(ForeignKey('sizes.id'), nullable=False)
+    delivery: Mapped[float] = mapped_column(default=0, nullable=True)
+    quantity: Mapped[int] = mapped_column(default=0, nullable=True)
     date_create: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))
-    comment: Mapped[str] = mapped_column(String(200))
+    comment: Mapped[str] = mapped_column(String(200), nullable=True)
 
 
 class Payment(Base):
@@ -178,7 +180,7 @@ class About(Base):
     name: Mapped[str] = mapped_column(String(90))
     description: Mapped[str] = mapped_column(Text, nullable=True)
     address: Mapped[str] = mapped_column(String(200), nullable=True)
-    phone: Mapped[str] = mapped_column(String(25), nullable=True)
+    phone: Mapped[str] = mapped_column(String(200), nullable=True)
     email: Mapped[str] = mapped_column(String(100), nullable=True)
     map: Mapped[str] = mapped_column(String(300), nullable=True)
     logo: Mapped[str] = mapped_column(String(300), nullable=True)

@@ -3,6 +3,8 @@ from sqlalchemy import select, update, delete, desc
 from app.db.models import *
 from sqlalchemy import and_, or_
 
+from app.setting import BQ
+
 
 def sess(func):
     async def con(*args, **kwargs):
@@ -34,6 +36,7 @@ async def get_users(session):
 
 @sess
 async def get_sizes(session):
+    # return await session.sele(Sizes)
     return await session.scalars(select(Sizes).order_by(Sizes.name))
 
 @sess
@@ -48,10 +51,36 @@ async def get_categorys(session):
 async def get_category_category_id(session, id):
     return await session.scalars(
         select(Category).where(Category.category_id == int(id)).order_by(Category.sort))
+
+@sess
+async def get_category_category_id_product(session, id):
+    # select(Order.id, Order.product, Customer.name).select_from(
+    #     Order).join(Customer, Order.customer_id == Customer.id)
+    q = select(Category, Product).select_from(Product).join(
+        Category,
+        Product.category_id == int(id)
+    ).where(Category.id == int(id))
+    t = await session.execute(q)
+    return t
+
+    # q = select(Price, Product).join(
+    #     Price,
+    #     Product.id == Price.product_id
+    # ).where(Price.id == int(id))
+    # t = await session.execute(q)
+    # return t.one()
 @sess
 async def get_sizes_id(session, id):
     return await session.scalar(select(Sizes).where(Sizes.id == int(id)))
 
+
+@sess
+async def get_photo_id(session, id):
+    return await session.scalar(select(Photo).where(Photo.id == int(id)))
+
+@sess
+async def get_photo_price_id(session, id):
+    return await session.scalars(select(Photo).where(Photo.price_id == int(id)))
 @sess
 async def get_product_category_id(session, id):
     return await session.scalars(
@@ -115,6 +144,24 @@ async def get_user_id(session, id):
   #  async with async_session() as session:
     return await session.scalar(select(Users).where(Users.id == int(id)))
 
+@sess
+async def get_user_tg_id(session, tg_id):
+    return await session.scalar(select(Users).where(Users.tg_id == int(tg_id)))
+
+
+@sess
+async def get_basket_id(session, id):
+    return await session.scalar(select(Basket).where(Basket.id == int(id)))
+
+@sess
+async def get_basket(session, user_id):
+    return await session.scalars(select(Basket).where(Basket.users_id == int(user_id)))
+
+@sess
+async def get_basket_user_product(session, users_id, price_id, product_id):
+    return await session.scalar(select(Basket).where(and_(Basket.users_id == int(users_id),
+                                                     Basket.product_id == int(product_id),
+                                                     Basket.price_id == int(price_id))))
 
 @sess
 async def get_size_id(session, id):
@@ -172,7 +219,9 @@ async def get_price_photo_count(session, id):
 @sess
 async def get_product_id(session, id):
     return await session.scalar(select(Product).where(Product.id == int(id)))
-
+@sess
+async def get_products_id(session, id):
+    return await session.scalars(select(Product).where(Product.category_id == int(id)))
 @sess
 async def get_price_id(session, id):
     return await session.scalar(select(Price).where(Price.id == int(id)))
@@ -205,6 +254,11 @@ async def get_productbrand_pl(session, brand_id, product_id):
 @sess
 async def get_about(session):
     return await session.scalar(select(About))
+
+@sess
+async def get_cat(session):
+    return await session.scalar(select(Category))
+
 
 @sess
 async def del_data(session, data):
@@ -244,6 +298,72 @@ async def del_item2(session, data):
     except Exception as e:
         text = "❗️Не удалено. Есть зависимости 🔀 "
     return text
+@sess
+async def get_basket_all(session, user_id):
+    product = await session.scalars(select(Basket).where(Basket.users_id==int(user_id)))
+    product = product.all()
+    quantity_all = 0
+    for pr in product:
+        quantity_all = quantity_all + pr.quantity
+    # print(f'----------------{quantity_all}-----{BQ}')
+    return quantity_all
+
+
+@sess
+async def get_basket_price_all(session, user_id):
+    q = select(Price.price, Price.price_discount).select_from(Price, Basket).join(
+        Price,
+        Basket.price_id == Price.id
+    ).where(Basket.users_id == int(user_id))
+    t = await session.execute(q)
+
+    price_all = []
+    for price in t:
+        # print(f'-------------------{price.price}')
+        if price.price_discount != 0:
+            price_all.append(price.price_discount)
+        else:
+            price_all.append(price.price)
+    # print(f'-------------------{sum(price_all)}')
+    return sum(price_all)
+
+@sess
+async def set_basket(session, user_id, price_id, product_id, basketact, price_id_basket):
+    # print(f'---------{user_id=} {price_id=} {product_id=} {basketact=} {price_id_basket=}-------------')
+    basket = await get_basket_user_product(user_id, price_id, product_id)
+    quantity_all = await get_basket_all(user_id)
+
+    price = await get_price_id(price_id)
+    price_quantity = price.quantity
+    if price_id_basket != '':
+        if int(price_id_basket) == int(price_id):
+            price_id_basket = int(price_id_basket) #== int(price_id):
+            if not basket:
+                if price_quantity > 0 and quantity_all < BQ:
+                    if basketact == "plus":
+                        session.add(Basket(users_id = int(user_id), price_id=int(price_id), product_id = int(product_id), quantity = 1))
+                        await session.commit()
+            else:
+                if basketact == "plus" and quantity_all < BQ:
+                    if basket.quantity+1 <= price_quantity:
+                        await session.execute(update(Basket).where(Basket.price_id == price_id_basket).values(quantity=basket.quantity+1))
+                        await session.commit()
+                if basketact == "minus":
+                    if basket.quantity-1 <= 0:
+                        # DELETE FROM public.product WHERE Id = 1
+                        await session.execute(delete(Basket).where(Basket.price_id == price_id_basket))
+                        await session.commit()
+                    else:
+                        await session.execute(update(Basket).where(Basket.price_id == price_id_basket).
+                                              values(quantity=basket.quantity-1))
+                        await session.commit()
+    basket = await get_basket_user_product(user_id, price_id, product_id)
+
+    if basket:
+        quantity = basket.quantity
+    else:
+        quantity = 0
+    return quantity
 
 @sess
 async def set_size_new(session, data):
@@ -263,6 +383,88 @@ async def set_size_up(session, data):
     await session.commit()
     return "👌 Данные размера обновлены"
 
+@sess
+async def set_about_name(session, data):
+    about = await get_about()
+    if about:
+        await session.execute(update(About).values(name=data))
+        await session.commit()
+    else:
+        session.add(About(name=data))
+        await session.commit()
+
+
+@sess
+async def set_about_desc(session, data):
+    about = await get_about()
+    if about:
+        await session.execute(update(About).values(description=data))
+        await session.commit()
+    else:
+        session.add(About(description=data))
+        await session.commit
+
+@sess
+async def set_about_address(session, data):
+    about = await get_about()
+    if about:
+        await session.execute(update(About).values(address=data))
+        await session.commit()
+    else:
+        session.add(About(address=data))
+        await session.commit
+
+
+@sess
+async def set_about_phone(session, data):
+    about = await get_about()
+    if about:
+        await session.execute(update(About).values(phone=data))
+        await session.commit()
+    else:
+        session.add(About(phone=data))
+        await session.commit
+
+
+@sess
+async def set_about_email(session, data):
+    about = await get_about()
+    if about:
+        await session.execute(update(About).values(email=data))
+        await session.commit()
+    else:
+        session.add(About(email=data))
+        await session.commit
+
+@sess
+async def set_about_logo(session, data):
+    about = await get_about()
+    if about:
+        await session.execute(update(About).values(logo=data))
+        await session.commit()
+    else:
+        session.add(About(logo=data))
+        await session.commit
+
+@sess
+async def set_about_map(session, data):
+    about = await get_about()
+    if about:
+        await session.execute(update(About).values(map=data))
+        await session.commit()
+    else:
+        session.add(About(map=data))
+        await session.commit
+
+@sess
+async def set_about_photo(session, data):
+    about = await get_about()
+    if about:
+        await session.execute(update(About).values(photo=data))
+        await session.commit()
+    else:
+        session.add(About(photo=data))
+        await session.commit
 @sess
 async def set_brand_new(session, data):
     brand = await session.scalar(select(Brand).where(Brand.name == data['name']))
@@ -464,19 +666,18 @@ async def set_productbrand(session, brand_id, product_id):
 @sess
 async def del_productbrand(session, brand_id, product_id):
     item = await session.scalar(select(Productbrand).
-                                where(Productbrand.brand_id == int(brand_id) and Productbrand.product_id == int(product_id)))
+                                where(and_(Productbrand.brand_id == int(brand_id), Productbrand.product_id == int(product_id))))
     await session.delete(item)
     await session.commit()
 
 @sess
 async def poto_join(session, id):
-    # join(UserRole, UserRole.user_id == User.id)
     q = select(Price, Product).join(
         Price,
         Product.id == Price.product_id
     ).where(Price.id == int(id))
     t = await session.execute(q)
-    return t.all()
+    return t.one()
 
 
 
