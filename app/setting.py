@@ -1,9 +1,5 @@
-
 from typing import Any
 from aiogram.filters.callback_data import CallbackData
-
-# from app.admin import brand_menu, sizes_menu, users_menu, color_menu, delivery_menu, category_menu, subcategory_menu
-
 
 class pageCD(CallbackData, prefix='pg'):
     page:int
@@ -12,10 +8,12 @@ class pageCD(CallbackData, prefix='pg'):
     category_id:int|str
     product_id:int|str
     price_id:int|str
+    user_id:int|str
+    filterorder: str
+
 
 BQ = 10#basket quantity
-SO = ['Новый', 'Оплачен', 'Отправлен', 'Выдан']#status order
-
-# funs_dic={'brand_menu':brand_menu,'sizes_menu':sizes_menu, 'users_menu':users_menu,
-#           'color_menu':color_menu, 'delivery_menu':delivery_menu, 'category_menu':category_menu,
-#           'subcategory_menu':subcategory_menu}
+SO = {'all':'Все','new':'Новый', 'verified':'Проверен','pay':'Оплачен',
+      'delivery':'Отправлен', 'received':'Получен',
+      'archive':'В архиве', 'cancel':'Отменен'}#status order
+ADMINS = [1418091164, 7840303553]
