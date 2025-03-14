@@ -11,9 +11,13 @@ from app.filter import ChatTypeFilter
 from app.db.requests import set_user, get_about, get_cat, get_category_category_id, get_category_subcat_count, \
     get_product_count, get_category_id, get_category_category_id_product, get_product_id, get_products_id, get_price_id, \
     get_price_product, get_color_id, get_sizes_id, get_price_photo_count, get_photo_id, get_photo_price_id, get_user_id, \
-    get_user_tg_id, get_basket_user_product, set_basket, get_basket, get_basket_all, get_basket_price_all
+    get_user_tg_id, get_basket_user_product, set_basket, get_basket, get_basket_all, get_basket_price_all, get_delivery, \
+    set_new_order, get_orders_tg_id, get_ordersnumber_count_id, get_ordernumber_orders, get_delivery_id
 import app.keyboards as kb
 from aiogram.types import FSInputFile
+
+from app.setting import SO
+from app.states import Order
 
 user = Router()
 # user.message.filter(ChatTypeFilter(["group", "supergroup"]))
@@ -56,6 +60,8 @@ async def cmd_start(data, state: FSMContext):
                                          callback_data=f"cocat_0"))
     builder.add(InlineKeyboardButton(text=f'{kb.name_menu['basket_menu']} ',
                                      callback_data=f"basket"))
+    builder.add(InlineKeyboardButton(text=f'{kb.name_menu['order_menu']} ',
+                                     callback_data=f"ordsus"))
 
     builder.adjust(2, 2)
     await message.answer_photo(logo)
@@ -184,41 +190,6 @@ async def product_menu_user(**kwargs):
     builder.as_markup()
     return (builder, len(product), 'product_menu_user')
 
-# async def category_menu_user(**kwargs):
-#     start = kwargs['start']
-#     end = kwargs['end']
-#     category_id = kwargs['category_id']
-#
-#
-#     builder = InlineKeyboardBuilder()
-#     category = await get_category_category_id(category_id)
-#     category = category.all()
-#
-#     print(f'-----------------{category}')
-#     # builder.row(await kb.menu_us(kb.name_menu['main_menu'],"start"))
-#     builder.row(InlineKeyboardButton(text=kb.name_menu['main_menu'], callback_data="start"))
-#
-#     cat_menu_list = await cat_menu_start_user(category_id)
-#     for i in cat_menu_list[0]:
-#         builder.row(i)
-#
-#     for item in category[start:end]:
-#         # category_slave_count = await get_category_subcat_count(item.id)
-#         product_slave_count = await get_product_count(item.id)
-#         product_slave_count_num = ''
-#         if int(product_slave_count) > 0:
-#             product_slave_count_num = f'(🎁{product_slave_count})'
-#         # photo = ''
-#         # if item.photo != None:
-#         #     photo = '🖼'
-#         builder.row(
-#             InlineKeyboardButton(text=f"  {item.name} {product_slave_count_num} ",
-#                                 callback_data=f"cocat_{item.id}"),
-#         )
-#     # await product_menu_user(start=start, end=end, category_id=category_id)
-#     # await get_paginat_kb(res)
-#     builder.as_markup()
-#     return (builder, len(category), 'category_menu_user')
 @user.callback_query(F.data.startswith("cocat"))
 async def send_co_about(callback: CallbackQuery):
     category_id = callback.data.split('_')[1]
@@ -291,15 +262,8 @@ async def send_co_copro(callback: CallbackQuery):
             InlineKeyboardButton(text=f"📋 {item.name}  ",
                                 callback_data=f"cocat_{item.id}"),
         )
-
-    # builder.row(*list(reversed(bui)))
-    # builder.row(*list(reversed(catbui)))
-    # builder.row(InlineKeyboardButton(text=kb.name_menu['main_menu'], callback_data="start"))
-
     text = ''
-
     if product:
-
         name = product.name
         description = product.description
         text = (f'<b>{name}</b>\n'
@@ -433,13 +397,137 @@ async def send_co_copro(callback: CallbackQuery):
     quantity_all = await get_basket_all(user.id)
     price_all = await get_basket_price_all(user.id)
     if quantity_all>0:
-       builder.row(InlineKeyboardButton(text=f'{kb.name_menu['order_menu']} ',
-                                     callback_data=f"order"))
+       builder.row(InlineKeyboardButton(text=f'{kb.name_menu['neworder_menu']} ',
+                                     callback_data=f"ordus"))
     builder.row(InlineKeyboardButton(text=f'{kb.name_menu['main_menu']} ',
                                      callback_data=f"start"))
     await callback.message.answer(
         text=f"{kb.name_menu['basket_menu']} {quantity_all}шт. {price_all}₽",
         reply_markup=builder.as_markup(), parse_mode='html')
+
+############################################# create new order: ordus
+
+@user.callback_query(F.data.startswith("ordus"))
+async def send_ordus(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(status='new')
+    await state.set_state(Order.status)
+    delivery = await get_delivery()
+    delivery = delivery.all()
+    builder = InlineKeyboardBuilder()
+    buttons = []
+    for item in delivery:
+        buttons.append(InlineKeyboardButton(text=f'{item.name}',
+                                      callback_data=f'delivus_{item.id}'))
+    builder.row(*buttons)
+    builder.adjust(2, 2)
+    builder.row(InlineKeyboardButton(text=kb.name_menu['main_menu'], callback_data=f'start'))
+
+    await callback.message.answer(
+        text=f"{kb.name_menu['order_menu']} {kb.name_menu['delivery_menu']}",
+        reply_markup=builder.as_markup(), parse_mode='html')
+
+# @user.callback_query(F.data == 'delivus_')
+@user.callback_query(Order.status, F.data.startswith('delivus_'))
+async def send_ordus_new(callback:CallbackQuery, state: FSMContext):
+    tg_id = callback.message.from_user.id
+    # try:
+    delivery_id = callback.data.split('_')[1]
+    await set_new_order(tg_id, delivery_id, callback.message)
+    text = "Заказ создан!"
+    # except Exception as e:
+    #     text ="Что-то пошло не так!"
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=kb.name_menu['order_menu'],
+                                             callback_data=f'ordsus'))
+    builder.row(InlineKeyboardButton(text=kb.name_menu['main_menu'],
+                                             callback_data=f'start'))
+    await state.clear()
+    await callback.message.answer(
+        text=f"{text}",
+        reply_markup=builder.as_markup(), parse_mode='html')
+################################################## all ordersbumber ordsus
+async def ordsus_menu_user(**kwargs):
+    start = kwargs['start']
+    end = kwargs['end']
+    user_id = kwargs['user_id']
+    filterorder = kwargs['filterorder']
+    # tg_id = kwargs['tg_id']
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=kb.name_menu['main_menu'], callback_data="start"))
+    ordernumbers = await get_orders_tg_id(user_id, filterorder)
+    ordernumbers = ordernumbers.all()
+    buttons = []
+    for k, v in SO.items():
+        count = await get_ordersnumber_count_id(user_id, k)
+        buttons.append(InlineKeyboardButton(text=f'{v}: {count} шт',
+                                      callback_data=f'ordsus_{k}'))
+    builder.row(*buttons)
+    builder.adjust(1, 2)
+    for ordernumber in ordernumbers[start:end]:
+        builder.row(InlineKeyboardButton(text=f'№ {ordernumber.id} - {SO[ordernumber.status]}',
+                                            callback_data=f'ordup_{ordernumber.id}'))
+    builder.as_markup()
+    return (builder, len(ordernumbers), 'ordsus_menu_user')
+
+@user.callback_query(F.data.startswith('ordsus'))
+async def ordsus_all(callback: CallbackQuery):
+    tg_id = callback.message.from_user.id
+    filterorder = 'all'
+    try:
+        filterorder = callback.data.split('_')[1]
+    except Exception as e:pass
+    user = await get_user_tg_id(int(tg_id))
+    user_id = user.id
+    await callback.message.answer(f'{kb.name_menu["order_menu"]}. Фильтр: {SO[filterorder]}',
+                                        reply_markup=await get_paginat_kb(fun=ordsus_menu_user,
+                                                                          user_id=user_id,
+                                                                          filterorder=filterorder))
+
+@user.callback_query(F.data.startswith('ordup'))
+async def ordup(callback: CallbackQuery):
+    ordernumber_id = callback.data.split('_')[1]
+    text = ''
+    builder = InlineKeyboardBuilder()
+    ordernumber = await get_ordernumber_orders(ordernumber_id)
+    text = f"{text} Статус: <b>{SO[ordernumber.status]}</b>\n"
+    delivery = await get_delivery_id(ordernumber.delivery_id)
+    text = f"{text} Доставка: {delivery.name} {ordernumber.delivery}₽\n"
+    data = ordernumber.date_create
+    data = data.strftime("%d.%m.%Y %H:%M")
+    text = f"{text} Дата: {data}\n"
+    n = 1
+    summ = float(ordernumber.delivery)
+    for order in ordernumber.orders:
+        product = await get_product_id(order.product_id)
+        text = f"{text} {n}) {product.name}"
+        color = await get_color_id(order.color_id)
+        text = f"{text} {color.name}"
+        sizes = await get_sizes_id(order.sizes_id)
+        text = f"{text} {sizes.name}"
+        text = f"{text} <b>{order.price}</b>₽"
+        text = f"{text} {order.quantity}шт.\n"
+        summ = summ + float(order.price)
+        n += 1
+    if ordernumber.status == 'verified':
+        builder.row(InlineKeyboardButton(text=f"{kb.name_menu['pay_menu']}"
+                                              f" {summ} ₽", callback_data="start"))
+    builder.row(InlineKeyboardButton(text=f'⬆️{kb.name_menu['order_menu']} ', callback_data=f"ordsus"))
+    builder.row(InlineKeyboardButton(text=kb.name_menu['main_menu'], callback_data="start"))
+
+    await callback.message.answer(f'<b>{kb.name_menu['ord_menu']} № {ordernumber_id}</b>\n'
+                                  f'{text}'
+                                  f'<b>Итого: {summ} ₽</b>',
+                                  reply_markup=builder.as_markup(), parse_mode='html')
+
+    # orders = await get_orders_tg_id(tg_id)
+    # for order in orders:
+    #     builder.row(InlineKeyboardButton(text=f'{order[0].id}',
+    #                                         callback_data=f'start'))
+    # await state.clear()
+    # builder.row(InlineKeyboardButton(text=kb.name_menu['main_menu'], callback_data=f'start'))
+    # await callback.message.answer(
+    #     text=f"{kb.name_menu['order_menu']}",
+    #     reply_markup=builder.as_markup(), parse_mode='html')
 
     # await callback.message.edit_text(
     #     text = f"{cat_menu_list[1]} ",

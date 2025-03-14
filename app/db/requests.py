@@ -1,9 +1,13 @@
+import uuid
+
 from sqlalchemy import null, func, table, column
 from sqlalchemy import select, update, delete, desc
+from sqlalchemy.orm import selectinload
+
 from app.db.models import *
 from sqlalchemy import and_, or_
 
-from app.setting import BQ
+from app.setting import BQ, SO
 
 
 def sess(func):
@@ -259,6 +263,52 @@ async def get_about(session):
 async def get_cat(session):
     return await session.scalar(select(Category))
 
+@sess
+async def get_orders_tg_id_admin(session, filter):
+    if filter == 'all':
+      return await session.scalars(select(OrderNumber))
+    else:
+      return await session.scalars(select(OrderNumber).where(OrderNumber.status == filter))
+
+@sess
+async def get_ordersnumber_count_id_admin(session, filter):
+    if filter == 'all':
+        result = await session.execute(select(func.count()).select_from(OrderNumber))
+    else:
+        result = await session.execute(select(func.count()).select_from(OrderNumber).
+                                       where(OrderNumber.status == filter))
+    count = result.scalar()
+    return count
+@sess
+async def get_orders_tg_id(session, user_id, filter):
+    # SELECT orders. *
+    # FROM orders
+    # JOIN users ON orders.users_id = users.id
+    # WHERE users.tg_id = tg_id
+    # q = select(Orders).join(Users).filter(Users.tg_id == int(tg_id))
+    # q = select(Orders).join(Users).filter(Users.id == int(user_id))
+    # return await session.execute(q)
+    # user = await get_user_id(int(user_id))
+    if filter == 'all':
+      return await session.scalars(select(OrderNumber).where(OrderNumber.users_id == int(user_id)))
+    else:
+      return await session.scalars(select(OrderNumber).where(and_(OrderNumber.users_id == int(user_id),
+                                                                  OrderNumber.status == filter)))
+@sess
+async def get_ordersnumber_count_id(session, user_id, filter):
+    if filter == 'all':
+        result = await session.execute(select(func.count()).select_from(OrderNumber).
+                                       where(OrderNumber.users_id == int(user_id)))
+    else:
+        result = await session.execute(select(func.count()).select_from(OrderNumber).
+                                       where(and_(OrderNumber.users_id == int(user_id),
+                                                  OrderNumber.status == filter)))
+    count = result.scalar()
+    return count
+@sess
+async def get_ordernumber_orders(session, id):
+    q = select(OrderNumber).where(OrderNumber.id==int(id)).options(selectinload(OrderNumber.orders))
+    return await session.scalar(q)
 
 @sess
 async def del_data(session, data):
@@ -657,6 +707,60 @@ async def set_about_up(session, data):
                     ))
     await session.commit()
 
+@sess
+async def set_new_order(session, tg_id, delivery_id, message):
+    user = await get_user_tg_id(int(tg_id))
+    basket = await get_basket(user.id)
+    orderuuid = str(uuid.uuid4())
+    delivery = await get_delivery_id(int(delivery_id))
+    ######################################## ordernumber
+    q = OrderNumber(users_id=user.id,
+                    uuid=orderuuid,
+                    status='new',
+                    comment='new',
+                    delivery_id=int(delivery_id),
+                    delivery=delivery.price,
+                    )
+    session.add(q)
+    await session.commit()
+    text = f'Новый заказ:\n{user.id=}\n{user.tg_id=}'
+    await message.bot.send_message(chat_id=-1002266116367, text=text)
+    ordernumber = await session.scalar(select(OrderNumber).where(OrderNumber.uuid==orderuuid))
+    ordernumber_id = ordernumber.id
+    # print(f'---------------------{ordernumber_id}')
+    #########################################
+    basket = basket.all()
+    for bskt in basket:
+        price = await get_price_id(bskt.price_id)
+        tprice = price.price
+        if price.price_discount >0:
+            tprice = price.price_discount
+        session.add(Orders(
+                          uuid = orderuuid,
+                          ordernumber_id = ordernumber_id,
+                          product_id = bskt.product_id,
+                          price_id = bskt.price_id,
+                          color_id = price.color_id,
+                          sizes_id = price.sizes_id,
+                          price = tprice,
+                          quantity=bskt.quantity,
+                          ))
+        await session.delete(bskt)
+        await session.commit()
+
+
+    # status: Mapped[str] = mapped_column(String(50), nullable=True)
+    # users_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
+    # product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=True)
+    # price_id: Mapped[int] = mapped_column(ForeignKey('price.id'), nullable=True)
+    # delivery_id: Mapped[int] = mapped_column(ForeignKey('delivery.id'), nullable=True)
+    # color_id: Mapped[int] = mapped_column(ForeignKey('color.id'), nullable=True)
+    # sizes_id: Mapped[int] = mapped_column(ForeignKey('sizes.id'), nullable=True)
+    # price: Mapped[float] = mapped_column(default=0)
+    # delivery: Mapped[float] = mapped_column(default=0, nullable=True)
+    # quantity: Mapped[int] = mapped_column(default=0, nullable=True)
+    # date_create: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))
+    # comment: Mapped[str] = mapped_column(String(200), nullable=True)
 
 @sess
 async def set_productbrand(session, brand_id, product_id):

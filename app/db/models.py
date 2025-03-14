@@ -142,23 +142,32 @@ class Basket(Base):
     price_id: Mapped[int] = mapped_column(ForeignKey('price.id'), nullable=True)
     quantity: Mapped[int]
 
+class OrderNumber(Base):
+    __tablename__ = 'ordernumber'
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    uuid: Mapped[str] = mapped_column(String(50), nullable=True)
+    users_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), nullable=True)
+    comment: Mapped[str] = mapped_column(String(200), nullable=True)
+    delivery_id: Mapped[int] = mapped_column(ForeignKey('delivery.id'), nullable=True)
+    delivery: Mapped[float] = mapped_column(default=0, nullable=True)
+    date_create: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))
+    orders: Mapped[list['Orders']] = relationship(back_populates="ordernumber")
 
 class Orders(Base):
     __tablename__ = 'orders'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    status: Mapped[str] = mapped_column(String(50), nullable=True)
-    users_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
+    uuid: Mapped[str] = mapped_column(String(50), nullable=True)
+    ordernumber_id: Mapped[int] = mapped_column(ForeignKey('ordernumber.id'), nullable=True)
     product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=True)
     price_id: Mapped[int] = mapped_column(ForeignKey('price.id'), nullable=True)
-    delivery_id: Mapped[int] = mapped_column(ForeignKey('delivery.id'), nullable=True)
     color_id: Mapped[int] = mapped_column(ForeignKey('color.id'), nullable=True)
     sizes_id: Mapped[int] = mapped_column(ForeignKey('sizes.id'), nullable=True)
     price: Mapped[float] = mapped_column(default=0)
-    delivery: Mapped[float] = mapped_column(default=0, nullable=True)
     quantity: Mapped[int] = mapped_column(default=0, nullable=True)
-    date_create: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))
-    comment: Mapped[str] = mapped_column(String(200), nullable=True)
+    ordernumber: Mapped['OrderNumber'] = relationship(back_populates="orders")
+
 
 
 class Payment(Base):
@@ -167,7 +176,7 @@ class Payment(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     status: Mapped[str] = mapped_column(String(50))
     users_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
-    orders_id: Mapped[int] = mapped_column(ForeignKey('orders.id'), nullable=True)
+    ordersnumber_id: Mapped[int] = mapped_column(ForeignKey('ordersnumber.id'), nullable=True)
     amount: Mapped[float] = mapped_column(default=0)
     payment: Mapped[str] = mapped_column(String(300))
     date_create: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))

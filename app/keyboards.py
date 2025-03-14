@@ -8,7 +8,7 @@ name_menu ={
             'brand_menu':'📌 Теги',
             'sizes_menu':'📶 Размеры',
             'color_menu':'🔵 Цвета',
-            'delivery_menu':'🚚 Доставки',
+            'delivery_menu':'🚚 Доставка',
             'category_menu':'📋 Каталог',
             'subcategory_menu':'📋 ПодКатегории',
             'product_menu':'🎁 Товары',
@@ -32,7 +32,10 @@ name_menu ={
             'map_menu': '🗺 Карта',
             'contact_menu': '🌐 Контакты',
             'basket_menu': '🧺 Корзина',
-            'order_menu': '📄📎 Заказ',
+            'order_menu': '📄📎 Заказы',
+            'ord_menu': '📄📎 Заказ',
+            'neworder_menu': '➕📄📎 Создать заказ',
+            'pay_menu': '💰 Оплата',
             }
 main_menu = InlineKeyboardButton(text=name_menu['main_menu'], callback_data='admin')
 
@@ -61,6 +64,7 @@ main = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=name_menu['delivery_menu'], callback_data='delivery')],
         [InlineKeyboardButton(text=name_menu['about_menu'], callback_data='about')],
         # [InlineKeyboardButton(text='🎁 Товары', callback_data='product')],
+        [InlineKeyboardButton(text=name_menu['order_menu'], callback_data='ordernumber')],
 ])
 
 main_top = InlineKeyboardMarkup(inline_keyboard=[[main_menu]])
