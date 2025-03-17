@@ -39,27 +39,26 @@ async def price_up(callback:CallbackQuery, state: FSMContext):
     await state.update_data(status='up')
     product = await get_product_id(product_id)
     price = await get_price_id(id)
-    color = await get_color_id(price.color_id)
-    sizes = await get_sizes_id(price.sizes_id)
     category = await get_category_id(product.category_id)
     if not category:
-        name = kb.name_menu['category_menu']
+        catname = kb.name_menu['category_menu']
     else:
-        name = category.name
+        catname = category.name
     await state.update_data(category_id=product.category_id)
     await state.update_data(id=id)
     #####
     data = await state.get_data()
     #####
     await callback.message.answer(f'<b>Данные:</b>\n'
+                                  f'Категория: {catname}\n'
                                   f'(🆔 {price.id})\n'
                                   f'Название : {price.name}\n'
                                   f'💰 Цена: {price.price}\n'
                                   f'💰 Цена со скидкой: {price.price_discount}\n'
                                   f'Количество: {price.quantity}\n'
                                   f'Продукт: {product.name}\n'                                  
-                                  f'Цвет: {price.color_id} / {color.name}\n'
-                                  f'Размер: {price.sizes_id} / {sizes.name}\n'
+                                  f'Цвет: {price.color}\n'
+                                  f'Размер: {price.sizes}\n'
                                   f'<b>Новые данные:\n'
                                   'Старые будут удалены❗️\n'
                                   'Название прайса:</b>',
@@ -134,17 +133,16 @@ async def price_new_color(message: Message, state: FSMContext):
     #####
     data = await state.get_data()
     #####
-    try:
-    # if True:
-        quantity = int(message.text)
-        await state.update_data(quantity=quantity)
-        await state.set_state(UpPrice.color)
-        builder = await color(data['category_id'])
-        await message.answer('Цвет товара:', reply_markup=builder.as_markup())
-    except Exception as e:
-        data = await state.get_data()
-        await message.answer('Количество - это число:',
-                             reply_markup=await kb.kb_cancel(f'product_{data['category_id']}'))
+    # try:
+    quantity = int(message.text)
+    await state.update_data(quantity=quantity)
+    await state.set_state(UpPrice.color)
+    builder = await color(data['category_id'])
+    await message.answer('Цвет товара:', reply_markup=builder.as_markup())
+    # except Exception as e:
+    #     data = await state.get_data()
+    #     await message.answer('Количество - это число:',
+    #                          reply_markup=await kb.kb_cancel(f'product_{data['category_id']}'))
 ##################################### color
 async def sizes(category_id):
     sizes = await get_sizes()

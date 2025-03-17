@@ -57,6 +57,16 @@ async def get_category_category_id(session, id):
         select(Category).where(Category.category_id == int(id)).order_by(Category.sort))
 
 @sess
+async def get_productbrand_product_id(session, product_id):
+    q = select(Brand).select_from(Brand, Productbrand).join(
+        Brand,
+        Productbrand.brand_id == Brand.id
+    ).where(Productbrand.product_id == int(product_id))
+    res = await session.execute(q)
+    return res.scalars().all()
+
+
+@sess
 async def get_category_category_id_product(session, id):
     # select(Order.id, Order.product, Customer.name).select_from(
     #     Order).join(Customer, Order.customer_id == Customer.id)
@@ -67,12 +77,6 @@ async def get_category_category_id_product(session, id):
     t = await session.execute(q)
     return t
 
-    # q = select(Price, Product).join(
-    #     Price,
-    #     Product.id == Price.product_id
-    # ).where(Price.id == int(id))
-    # t = await session.execute(q)
-    # return t.one()
 @sess
 async def get_sizes_id(session, id):
     return await session.scalar(select(Sizes).where(Sizes.id == int(id)))
@@ -89,6 +93,10 @@ async def get_photo_price_id(session, id):
 async def get_product_category_id(session, id):
     return await session.scalars(
         select(Product).where(Product.category_id == int(id)).order_by(Product.sort))
+
+@sess
+async def get_product_find(session, find):
+    return await session.scalars(select(Product).where(Product.name.like(f'%{find:}%')))
 
 @sess
 async def get_price_product(session, id):
@@ -266,9 +274,9 @@ async def get_cat(session):
 @sess
 async def get_orders_tg_id_admin(session, filter):
     if filter == 'all':
-      return await session.scalars(select(OrderNumber))
+      return await session.scalars(select(OrderNumber).order_by(desc(OrderNumber.id)))
     else:
-      return await session.scalars(select(OrderNumber).where(OrderNumber.status == filter))
+      return await session.scalars(select(OrderNumber).where(OrderNumber.status == filter).order_by(desc(OrderNumber.id)))
 
 @sess
 async def get_ordersnumber_count_id_admin(session, filter):
@@ -290,10 +298,10 @@ async def get_orders_tg_id(session, user_id, filter):
     # return await session.execute(q)
     # user = await get_user_id(int(user_id))
     if filter == 'all':
-      return await session.scalars(select(OrderNumber).where(OrderNumber.users_id == int(user_id)))
+      return await session.scalars(select(OrderNumber).where(OrderNumber.users_id == int(user_id)).order_by(desc(OrderNumber.id)))
     else:
       return await session.scalars(select(OrderNumber).where(and_(OrderNumber.users_id == int(user_id),
-                                                                  OrderNumber.status == filter)))
+                                                                  OrderNumber.status == filter)).order_by(desc(OrderNumber.id)))
 @sess
 async def get_ordersnumber_count_id(session, user_id, filter):
     if filter == 'all':
@@ -428,10 +436,37 @@ async def set_size_new(session, data):
 @sess
 async def set_size_up(session, data):
     id = int(data['id'])
-    await session.execute(update(Sizes).where(Sizes.id == id).values(name=data['name'],
-                         description=data['description']))
-    await session.commit()
+    size = await session.scalar(select(Sizes).where(and_(Sizes.name == data['name'], Sizes.id!=id)))
+    text = '❌ Такой размер уже есть'
+    if not size:
+        await session.execute(update(Sizes).where(Sizes.id == id).values(name=data['name'],
+                             description=data['description']))
+        await session.commit()
     return "👌 Данные размера обновлены"
+@sess
+async def set_new_status_ordernumder(session, ordernumber_id, new_status):
+    ordernumber_id = int(ordernumber_id)
+    await session.execute(update(OrderNumber).where(OrderNumber.id == ordernumber_id).
+                          values(status=new_status))
+    await session.commit()
+
+@sess
+async def set_new_delivery_id_ordernumder(session, ordernumber_id, new_delivery_id):
+    ordernumber_id = int(ordernumber_id)
+    new_delivery_id = int(new_delivery_id)
+    delivery = await get_delivery_id(new_delivery_id)
+
+    await session.execute(update(OrderNumber).where(OrderNumber.id == ordernumber_id).
+                          values(delivery=f"{delivery.name}. {delivery.description}", delivery_price=delivery.price))
+    await session.commit()
+
+@sess
+async def set_new_delivery_ordernumder(session, ordernumber_id, new_delivery):
+    ordernumber_id = int(ordernumber_id)
+    new_delivery = float(new_delivery)
+    await session.execute(update(OrderNumber).where(OrderNumber.id == ordernumber_id).
+                          values(delivery_price=new_delivery))
+    await session.commit()
 
 @sess
 async def set_about_name(session, data):
@@ -528,9 +563,12 @@ async def set_brand_new(session, data):
 @sess
 async def set_brand_up(session, data):
     id = int(data['id'])
-    await session.execute(update(Brand).where(Brand.id == id).values(sort=data['sort'], name=data['name'],
-                         description=data['description']))
-    await session.commit()
+    brand = await session.scalar(select(Brand).where(and_(Brand.name == data['name'], Brand.id!=id)))
+    text = '❌ Такой бренд уже есть'
+    if not brand:
+        await session.execute(update(Brand).where(Brand.id == id).values(sort=data['sort'], name=data['name'],
+                             description=data['description']))
+        await session.commit()
     return "👌 Данные бренда обновлены"
 
 @sess
@@ -596,6 +634,8 @@ async def set_product_up(session, data):
 @sess
 async def set_price_new(session, data):
     price = await session.scalar(select(Price).where(Price.name == data['name']))
+    color = await session.scalar(select(Color).where(Color.id == int(data['color_id'])))
+    sizes = await session.scalar(select(Sizes).where(Sizes.id == int(data['sizes_id'])))
     text = '❌ Такой прайс уже есть'
     if not price:
         session.add(Price(name=data['name'],
@@ -603,8 +643,9 @@ async def set_price_new(session, data):
                              price_discount=float(round(data['price_discount'], 2)),
                              quantity=int(data['quantity']),
                              product_id=int(data['product_id']),
-                             color_id=int(data['color_id']),
-                             sizes_id=int(data['sizes_id'])
+                             color=color.name,
+                             colorphoto=color.colorphoto,
+                             sizes=sizes.name
                              ))
         await session.commit()
         text = '👌 Прайс добавлен'
@@ -616,14 +657,17 @@ async def set_price_up(session, data):
     price = await session.scalar(select(Price).where(and_(Price.name == data['name'], Price.id != id)))
     text = '❌ Такой прайс уже есть'
     if not price:
-        await session.execute(update(Price).where(Product.id == id).values(
+        color = await session.scalar(select(Color).where(Color.id == int(data['color_id'])))
+        sizes = await session.scalar(select(Sizes).where(Sizes.id == int(data['sizes_id'])))
+        await session.execute(update(Price).where(Price.id == id).values(
                              name=data['name'],
                              price=float(data['price']),
                              price_discount=float(data['price_discount']),
                              quantity=int(data['quantity']),
                              product_id=int(data['product_id']),
-                             color_id=int(data['color_id']),
-                             sizes_id=int(data['sizes_id'])
+                             color=color.name,
+                             colorphoto=color.colorphoto,
+                             sizes=sizes.name
                              ))
         await session.commit()
         text = "👌 Данные прайса обновлены"
@@ -652,7 +696,7 @@ async def set_photo_new(session, data):
 
 @sess
 async def set_color_new(session, data):
-    session.add(Color(name=data['name'], photo=data['photo']))
+    session.add(Color(name=data['name'], colorphoto=data['photo']))
     await session.commit()
     return '👌 Цвет добавлен'
 
@@ -714,13 +758,15 @@ async def set_new_order(session, tg_id, delivery_id, message):
     orderuuid = str(uuid.uuid4())
     delivery = await get_delivery_id(int(delivery_id))
     ######################################## ordernumber
-    q = OrderNumber(users_id=user.id,
-                    uuid=orderuuid,
+    q = OrderNumber(uuid=orderuuid,
+                    users_id=user.id,
+                    tg_id=tg_id,
                     status='new',
                     comment='new',
-                    delivery_id=int(delivery_id),
-                    delivery=delivery.price,
+                    delivery=f"{delivery.name}. {delivery.description}",
+                    delivery_price=delivery.price,
                     )
+
     session.add(q)
     await session.commit()
     text = f'Новый заказ:\n{user.id=}\n{user.tg_id=}'
@@ -732,35 +778,23 @@ async def set_new_order(session, tg_id, delivery_id, message):
     basket = basket.all()
     for bskt in basket:
         price = await get_price_id(bskt.price_id)
+        product = await get_product_id(bskt.product_id)
         tprice = price.price
         if price.price_discount >0:
             tprice = price.price_discount
         session.add(Orders(
                           uuid = orderuuid,
                           ordernumber_id = ordernumber_id,
-                          product_id = bskt.product_id,
+                          product = f"{product.name}",
                           price_id = bskt.price_id,
-                          color_id = price.color_id,
-                          sizes_id = price.sizes_id,
-                          price = tprice,
+                          price=tprice,
+                          color = price.color,
+                          colorphoto = price.colorphoto,
+                          sizes = price.sizes,
                           quantity=bskt.quantity,
                           ))
         await session.delete(bskt)
         await session.commit()
-
-
-    # status: Mapped[str] = mapped_column(String(50), nullable=True)
-    # users_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
-    # product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=True)
-    # price_id: Mapped[int] = mapped_column(ForeignKey('price.id'), nullable=True)
-    # delivery_id: Mapped[int] = mapped_column(ForeignKey('delivery.id'), nullable=True)
-    # color_id: Mapped[int] = mapped_column(ForeignKey('color.id'), nullable=True)
-    # sizes_id: Mapped[int] = mapped_column(ForeignKey('sizes.id'), nullable=True)
-    # price: Mapped[float] = mapped_column(default=0)
-    # delivery: Mapped[float] = mapped_column(default=0, nullable=True)
-    # quantity: Mapped[int] = mapped_column(default=0, nullable=True)
-    # date_create: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))
-    # comment: Mapped[str] = mapped_column(String(200), nullable=True)
 
 @sess
 async def set_productbrand(session, brand_id, product_id):
@@ -782,6 +816,9 @@ async def poto_join(session, id):
     ).where(Price.id == int(id))
     t = await session.execute(q)
     return t.one()
+
+async def format_number(number):
+    return '{0:,}'.format(number).replace(',', ' ')
 
 
 

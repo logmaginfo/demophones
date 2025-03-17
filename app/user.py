@@ -12,7 +12,8 @@ from app.db.requests import set_user, get_about, get_cat, get_category_category_
     get_product_count, get_category_id, get_category_category_id_product, get_product_id, get_products_id, get_price_id, \
     get_price_product, get_color_id, get_sizes_id, get_price_photo_count, get_photo_id, get_photo_price_id, get_user_id, \
     get_user_tg_id, get_basket_user_product, set_basket, get_basket, get_basket_all, get_basket_price_all, get_delivery, \
-    set_new_order, get_orders_tg_id, get_ordersnumber_count_id, get_ordernumber_orders, get_delivery_id
+    set_new_order, get_orders_tg_id, get_ordersnumber_count_id, get_ordernumber_orders, get_delivery_id, format_number, \
+    get_productbrand_product_id
 import app.keyboards as kb
 from aiogram.types import FSInputFile
 
@@ -175,7 +176,7 @@ async def product_menu_user(**kwargs):
         builder.row(i)
     for item in category:
         builder.row(
-            InlineKeyboardButton(text=f"📋 {item.name}  ",
+            InlineKeyboardButton(text=f"⬆️📋 {item.name}  ",
                                 callback_data=f"cocat_{item.id}"),
         )
     if product:
@@ -264,30 +265,30 @@ async def send_co_copro(callback: CallbackQuery):
         )
     text = ''
     if product:
+        text = '\n'
+        brands = await get_productbrand_product_id(product_id)
+        for brand in brands:
+            text = f"{text} <b><u>{brand.name}</u></b> \n"
         name = product.name
         description = product.description
-        text = (f'<b>{name}</b>\n'
+        text = (f'{text} <b>{name}</b>\n'
                 f'{description}\n')
         price = await get_price_product(product_id)
         price = price.all()
         for pr in price:
             button_text = ''
-            tprice = pr.price
-            button_tprice = pr.price
+            tprice = await format_number(pr.price)
             if pr.price_discount:
                 if pr.price_discount > 0:
-                    tprice = f"<s>{pr.price}</s> {pr.price_discount}"
+                    tprice = f"<s>{await format_number(pr.price)}</s> {await format_number(pr.price_discount)}"
                     button_tprice = pr.price_discount
             text = f"{text} Цена: <b>{tprice} ₽</b> "
-            # button_text = f"{button_text} {button_tprice}₽"
-            if pr.color_id:
-                color = await get_color_id(pr.color_id)
-                text = f"{text} {color.name} "
-                button_text = f"{button_text} {color.name}"
-            if pr.sizes_id:
-                sizes = await get_sizes_id(pr.sizes_id)
-                text = f"{text} {sizes.name} "
-                button_text = f"{button_text} {sizes.name}"
+            if pr.color:
+                text = f"{text} {pr.color} "
+                button_text = f"{button_text} {pr.color}"
+            if pr.sizes:
+                text = f"{text} {pr.sizes} "
+                button_text = f"{button_text} {pr.sizes}"
             if pr.quantity:
                 text = f"{text} / В наличии: {pr.quantity} шт."
             text = f"{text}\n"
@@ -301,29 +302,30 @@ async def send_co_copro(callback: CallbackQuery):
             builder.row(*button_basket)
 
         if product.photo:
+            await callback.message.answer_photo(product.photo)
 
-            if int(category_id) != 0:
-                category_now = await get_category_id(category_id)
-                builder.row(InlineKeyboardButton(text=f"📋 {category_now.name}", callback_data=f"cocat_{category_id}"))
+            # if int(category_id) != 0:
+            #     category_now = await get_category_id(category_id)
+            #     builder.row(InlineKeyboardButton(text=f"⬆️📋 {category_now.name}", callback_data=f"cocat_{category_id}"))
+            #
+            # await callback.message.answer_photo(product.photo, caption=f"{cat_menu_list[1]} / {product.name}\n",
+            #                                                          #  f"{text}"
+            #                                     reply_markup=builder.as_markup(), parse_mode='html')
+        # else:
 
-            await callback.message.answer_photo(product.photo, caption=f"{cat_menu_list[1]} / {product.name}\n"
-                                                                       f"{text}",
-                                                reply_markup=builder.as_markup(), parse_mode='html')
-        else:
+        if int(category_id) != 0:
+            category_now = await get_category_id(category_id)
+            builder.row(InlineKeyboardButton(text=f"⬆️📋 {category_now.name}", callback_data=f"cocat_{category_id}"))
 
-            if int(category_id) != 0:
-                category_now = await get_category_id(category_id)
-                builder.row(InlineKeyboardButton(text=f"📋 {category_now.name}", callback_data=f"cocat_{category_id}"))
-
-            await callback.message.answer(
-                text=f"{cat_menu_list[1]} / {product.name}\n"
-                     f"{text}",
-                reply_markup=builder.as_markup(), parse_mode='html')
+        await callback.message.answer(
+            text=f"{cat_menu_list[1]} / {product.name}\n"
+                 f"{text}",
+            reply_markup=builder.as_markup(), parse_mode='html')
     else:
         builder.row(*button_basket)
         if int(category_id) != 0:
             category_now = await get_category_id(category_id)
-            builder.row(InlineKeyboardButton(text=f"📋 {category_now.name}", callback_data=f"cocat_{category_id}"))
+            builder.row(InlineKeyboardButton(text=f"⬆️📋 {category_now.name}", callback_data=f"cocat_{category_id}"))
 
         await callback.message.answer(
             text=f"{cat_menu_list[1]} / {product.name}\n"
@@ -332,13 +334,12 @@ async def send_co_copro(callback: CallbackQuery):
 
 
 @user.callback_query(F.data.startswith("cophot"))
-async def send_co_copro(callback: CallbackQuery):
+async def send_co_cophot(callback: CallbackQuery):
     price_id = int(callback.data.split('_')[1])
     product_id = int(callback.data.split('_')[2])
     category_id = int(callback.data.split('_')[3])
     photo = await get_photo_price_id(price_id)
     photo = photo.all()
-    # print(f"-----------{photo_media}")
     media_group = MediaGroupBuilder(caption="Media group caption")
     for ph in photo:
         media_group.add_photo(type="photo", media=ph.photo)
@@ -350,7 +351,7 @@ async def send_co_copro(callback: CallbackQuery):
 
 
 @user.callback_query(F.data.startswith("basket"))
-async def send_co_copro(callback: CallbackQuery):
+async def send_basket(callback: CallbackQuery):
     price_id_basket = ''
     basketact = ''
     try:
@@ -376,13 +377,11 @@ async def send_co_copro(callback: CallbackQuery):
                 button_tprice = price.price_discount
         button_text = f"{button_text} {button_tprice}₽"
         # text = f'{text} tprice\n'
-        if price.color_id:
-            color = await get_color_id(price.color_id)
-            button_text = f"{button_text} {color.name}"
+        if price.color:
+            button_text = f"{button_text} {price.color}"
             # text = f"{text} {color.name} "
-        if price.sizes_id:
-            sizes = await get_sizes_id(price.sizes_id)
-            button_text = f"{button_text} {sizes.name}"
+        if price.sizes:
+            button_text = f"{button_text} {price.sizes}"
             # text = f"{text} {sizes.name} "
         button_copro =InlineKeyboardButton(text=f" {button_text} ",
                              callback_data=f"copro_{product.id}_{category.id}")
@@ -426,7 +425,7 @@ async def send_ordus(callback: CallbackQuery, state: FSMContext):
         text=f"{kb.name_menu['order_menu']} {kb.name_menu['delivery_menu']}",
         reply_markup=builder.as_markup(), parse_mode='html')
 
-# @user.callback_query(F.data == 'delivus_')
+
 @user.callback_query(Order.status, F.data.startswith('delivus_'))
 async def send_ordus_new(callback:CallbackQuery, state: FSMContext):
     tg_id = callback.message.from_user.id
@@ -490,22 +489,18 @@ async def ordup(callback: CallbackQuery):
     builder = InlineKeyboardBuilder()
     ordernumber = await get_ordernumber_orders(ordernumber_id)
     text = f"{text} Статус: <b>{SO[ordernumber.status]}</b>\n"
-    delivery = await get_delivery_id(ordernumber.delivery_id)
-    text = f"{text} Доставка: {delivery.name} {ordernumber.delivery}₽\n"
+    text = f"{text} Доставка: {ordernumber.delivery} {ordernumber.delivery_price}₽\n"
     data = ordernumber.date_create
     data = data.strftime("%d.%m.%Y %H:%M")
-    text = f"{text} Дата: {data}\n"
+    text = f"{text} Дата: {data}\n\n"
     n = 1
-    summ = float(ordernumber.delivery)
+    summ = float(ordernumber.delivery_price)
     for order in ordernumber.orders:
-        product = await get_product_id(order.product_id)
-        text = f"{text} {n}) {product.name}"
-        color = await get_color_id(order.color_id)
-        text = f"{text} {color.name}"
-        sizes = await get_sizes_id(order.sizes_id)
-        text = f"{text} {sizes.name}"
-        text = f"{text} <b>{order.price}</b>₽"
-        text = f"{text} {order.quantity}шт.\n"
+        text = f"{text} ✅{n}) <b>{order.product}</b>\n"
+        text = f"{text} ℹ️{order.color} "
+        text = f"{text} /{order.sizes}\n"
+        text = f"{text} Цена: <b>{await format_number(order.price)}</b> ₽\n"
+        text = f"{text} Количество: {order.quantity}шт.\n\n"
         summ = summ + float(order.price)
         n += 1
     if ordernumber.status == 'verified':
@@ -516,8 +511,12 @@ async def ordup(callback: CallbackQuery):
 
     await callback.message.answer(f'<b>{kb.name_menu['ord_menu']} № {ordernumber_id}</b>\n'
                                   f'{text}'
-                                  f'<b>Итого: {summ} ₽</b>',
+                                  f'<b>Итого: {await format_number(summ)} ₽</b>',
                                   reply_markup=builder.as_markup(), parse_mode='html')
+
+############################################ s = select([users]).where(users.c.username.ilike('%john%'))
+
+
 
     # orders = await get_orders_tg_id(tg_id)
     # for order in orders:
