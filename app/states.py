@@ -91,3 +91,11 @@ class Order(StatesGroup):
     comment = State()
 
 
+class Delivery_order_admin(StatesGroup):
+    new = State()
+
+class FindProduct(StatesGroup):
+    new = State()
+
+
+

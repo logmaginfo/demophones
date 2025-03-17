@@ -55,7 +55,7 @@ class Category(Base):
     # level: Mapped[int] = mapped_column(nullable=False)
 
 
-class Price(Base):
+class Price(Base):#, ondelete="DELETE"
     __tablename__ = 'price'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -64,8 +64,9 @@ class Price(Base):
     price_discount: Mapped[float] = mapped_column(default=0)
     quantity: Mapped[int] = mapped_column(default=0)
     product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=True)
-    color_id: Mapped[int] = mapped_column(ForeignKey('color.id'), nullable=True)
-    sizes_id: Mapped[int] = mapped_column(ForeignKey('sizes.id'), nullable=True)
+    color: Mapped[str] = mapped_column(String(90), nullable=True)
+    colorphoto: Mapped[str] = mapped_column(String(300), nullable=True)
+    sizes: Mapped[str] = mapped_column(String(90), nullable=True)
 
 
 class Brand(Base):
@@ -75,7 +76,8 @@ class Brand(Base):
     sort: Mapped[str] = mapped_column(String(5), nullable=True)
     name: Mapped[str] = mapped_column(String(100), nullable=True)
     description: Mapped[str] = mapped_column(Text)
-    # product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=True)
+    # productbrand: Mapped[list['Orders']] = relationship(back_populates="brand")
+
 
 
 class Productbrand(Base):
@@ -84,6 +86,8 @@ class Productbrand(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     brand_id: Mapped[int] = mapped_column(ForeignKey('brand.id'), nullable=True)
     product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=True)
+    # brand: Mapped[list['Orders']] = relationship(back_populates="productbrand")
+
 
 
 class Product(Base):
@@ -120,7 +124,7 @@ class Color(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), nullable=True)
-    photo: Mapped[str] = mapped_column(String(300), nullable=True)
+    colorphoto: Mapped[str] = mapped_column(String(300), nullable=True)
 
 
 class Delivery(Base):
@@ -137,20 +141,21 @@ class Basket(Base):
     __tablename__ = 'basket'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    users_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
-    product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=True)
-    price_id: Mapped[int] = mapped_column(ForeignKey('price.id'), nullable=True)
+    users_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey('product.id', ondelete="CASCADE"), nullable=True)
+    price_id: Mapped[int] = mapped_column(ForeignKey('price.id', ondelete="CASCADE"), nullable=True)
     quantity: Mapped[int]
 
 class OrderNumber(Base):
     __tablename__ = 'ordernumber'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     uuid: Mapped[str] = mapped_column(String(50), nullable=True)
-    users_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
+    users_id: Mapped[int] = mapped_column(nullable=True)
+    tg_id = mapped_column(BigInteger)
     status: Mapped[str] = mapped_column(String(50), nullable=True)
     comment: Mapped[str] = mapped_column(String(200), nullable=True)
-    delivery_id: Mapped[int] = mapped_column(ForeignKey('delivery.id'), nullable=True)
-    delivery: Mapped[float] = mapped_column(default=0, nullable=True)
+    delivery: Mapped[str] = mapped_column(Text, nullable=True)
+    delivery_price: Mapped[float] = mapped_column(nullable=True)
     date_create: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))
     orders: Mapped[list['Orders']] = relationship(back_populates="ordernumber")
 
@@ -160,22 +165,30 @@ class Orders(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     uuid: Mapped[str] = mapped_column(String(50), nullable=True)
     ordernumber_id: Mapped[int] = mapped_column(ForeignKey('ordernumber.id'), nullable=True)
-    product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=True)
-    price_id: Mapped[int] = mapped_column(ForeignKey('price.id'), nullable=True)
-    color_id: Mapped[int] = mapped_column(ForeignKey('color.id'), nullable=True)
-    sizes_id: Mapped[int] = mapped_column(ForeignKey('sizes.id'), nullable=True)
+    product: Mapped[str] = mapped_column(Text, nullable=True)
+    price_id: Mapped[int] = mapped_column(nullable=True)
     price: Mapped[float] = mapped_column(default=0)
+    color:  Mapped[str] = mapped_column(String(100), nullable=True)
+    colorphoto: Mapped[str] = mapped_column(String(300), nullable=True)
+    sizes: Mapped[str] = mapped_column(String(90), nullable=True)
     quantity: Mapped[int] = mapped_column(default=0, nullable=True)
     ordernumber: Mapped['OrderNumber'] = relationship(back_populates="orders")
 
-
+    # name: Mapped[str] = mapped_column(String(90), nullable=True)
+    # price: Mapped[float] = mapped_column(default=0)
+    # price_discount: Mapped[float] = mapped_column(default=0)
+    # quantity: Mapped[int] = mapped_column(default=0)
+    # product_id: Mapped[int] = mapped_column(ForeignKey('product.id'), nullable=True)
+    # color: Mapped[str] = mapped_column(String(90), nullable=True)
+    # colorphoto: Mapped[str] = mapped_column(String(300), nullable=True)
+    # sizes: Mapped[str] = mapped_column(String(90), nullable=True)
 
 class Payment(Base):
     __tablename__ = 'payment'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     status: Mapped[str] = mapped_column(String(50))
-    users_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
+    users_id: Mapped[int] = mapped_column(nullable=True)
     ordersnumber_id: Mapped[int] = mapped_column(ForeignKey('ordersnumber.id'), nullable=True)
     amount: Mapped[float] = mapped_column(default=0)
     payment: Mapped[str] = mapped_column(String(300))

@@ -47,7 +47,7 @@ async def category_up(callback:CallbackQuery, state: FSMContext):
     #####
     if category.photo != None:
        await callback.message.answer_photo(category.photo)
-    await callback.message.edit_text(f'<b>Данные:</b>\n'
+    await callback.message.answer(f'<b>Данные:</b>\n'
                                   f'(🆔 {category.id})\n'
                                   f'Сортировка: {category.sort}\n'
                                   f'{category.category_id} / {name}\n'
