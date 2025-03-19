@@ -19,7 +19,7 @@ async def color_new(callback:CallbackQuery, state: FSMContext):
     await state.update_data(switch=switch)
     await state.update_data(status='new')
     await state.set_state(UpColor.name)
-    await callback.message.answer('Введите название цвета <b>*</b>', reply_markup=await kb.kb_cancel('color_menu'), parse_mode='html')
+    await callback.message.answer('Введите название цвета <b>*</b>', reply_markup=await kb.kb_cancel('color'), parse_mode='html')
 
 ################################# upcolor
 @newcolor.callback_query(F.data.startswith('upcolor_'))
@@ -39,7 +39,7 @@ async def color_new(callback:CallbackQuery, state: FSMContext):
                                   f'{color.photo=}', parse_mode='html')
 
     await callback.message.answer('<b>Новые данные:\n'
-                                  'Старые будут удалены❗️\nВведите название цвета</b>', reply_markup=await kb.kb_cancel('color_menu'), parse_mode='html')
+                                  'Старые будут удалены❗️\nВведите название цвета</b>', reply_markup=await kb.kb_cancel('color'), parse_mode='html')
 
 
 ################################# name
@@ -50,7 +50,7 @@ async def color_new_name(message: Message, state: FSMContext):
         await state.update_data(name=message.text)
         await message.answer('Добавьте изображение', reply_markup=await kb.kb_next('color_menu'))
     else:
-        await message.answer('Введите название цвета(<90)', reply_markup=await kb.kb_cancel('color_menu'))
+        await message.answer('Введите название цвета(<90)', reply_markup=await kb.kb_cancel('color'))
 
 ################################# photo
 @newcolor.message(UpColor.photo, F.photo)

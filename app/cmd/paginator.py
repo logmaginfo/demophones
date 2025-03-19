@@ -1,13 +1,6 @@
-from typing import Any
-from aiogram import Router, F
-from aiogram.filters.callback_data import CallbackData
+from aiogram import Router
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from sqlalchemy import BigInteger
-
-from app.filter import Admin
 from app.setting import pageCD
-
-from aiogram.types import Message, CallbackQuery, InputFile
 
 paginat = Router()
 # paginat.message.filter(Admin())

@@ -39,6 +39,7 @@ name_menu ={
             'statusorder_menu': '👑 Статус заказа',
             "send_menu":" ➡️ Отправить",
             'find_menu':'🔎 Поиск',
+
             }
 main_menu = InlineKeyboardButton(text=name_menu['main_menu'], callback_data='admin')
 
@@ -64,7 +65,7 @@ main = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=name_menu['brand_menu'], callback_data='brand')],
         [InlineKeyboardButton(text=name_menu['category_menu'], callback_data='category_0')],
         # [InlineKeyboardButton(text='📋 ПодКатегории', callback_data='subcategory')],
-        [InlineKeyboardButton(text=name_menu['delivery_menu'], callback_data='delivery')],
+        [InlineKeyboardButton(text=name_menu['delivery_menu'], callback_data='supply')],
         [InlineKeyboardButton(text=name_menu['about_menu'], callback_data='about')],
         # [InlineKeyboardButton(text='🎁 Товары', callback_data='product')],
         [InlineKeyboardButton(text=name_menu['order_menu'], callback_data='ordernumber')],

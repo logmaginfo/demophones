@@ -201,18 +201,3 @@ async def about_new_photo(message: Message, state: FSMContext):
     await state.clear()
     await about_new(data['callback'], state, text_menu=kb.name_menu['photo_menu'])
 
-#
-# @newabout.callback_query(UpAbout.photo, F.data == 'next')
-# async def about_new_photo_null(callback: CallbackQuery, state: FSMContext):
-#     await state.update_data(photo=null())
-#     data = await state.get_data()
-#     if data['status'] == 'new':
-#         await set_about_new(data)
-#     if data['status'] == 'up':
-#         await set_about_up(data)
-#     await callback.message.bot.answer_callback_query(callback.id, text=kb.name_menu['recordAdd_menu'], show_alert=False)
-#     await callback.message.answer(
-#         text=f'{kb.name_menu['about_menu']} {kb.name_menu['recordAdd_menu']}',
-#         reply_markup=InlineKeyboardMarkup(inline_keyboard=
-#         [[kb.main_menu, InlineKeyboardButton(text=kb.name_menu['about_menu'], callback_data='about')]]))
-#     await state.clear()

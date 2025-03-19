@@ -47,9 +47,9 @@ async def size_new_name(message: Message, state: FSMContext):
     if len(message.text)<28:
         await state.set_state(UpSize.description)
         await state.update_data(name=message.text)
-        await message.answer('Введите описание размера', reply_markup=await kb.kb_cancel('sizes_menu'))
+        await message.answer('Введите описание размера', reply_markup=await kb.kb_cancel('sizes'))
     else:
-        await message.answer('Введите название размера(<28)', reply_markup=await kb.kb_cancel('sizes_menu'))
+        await message.answer('Введите название размера(<28)', reply_markup=await kb.kb_cancel('sizes'))
 
 ################################# description
 @newsize.message(UpSize.description, F.text)
@@ -67,6 +67,6 @@ async def size_new_desc(message: Message, state: FSMContext):
         await state.clear()
 
     else:
-        await message.answer('Введите описание размера(<500)', reply_markup=await kb.kb_cancel('sizes_menu'))
+        await message.answer('Введите описание размера(<500)', reply_markup=await kb.kb_cancel('sizes'))
 
         #await state.clear()

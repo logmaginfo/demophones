@@ -11,7 +11,7 @@ from app.db.requests import get_users, del_data, get_brands, get_sizes, get_colo
     get_ordersnumber_count_id_admin, get_ordernumber_orders, get_delivery_id, get_color_id, get_sizes_id, \
     set_new_status_ordernumder, set_new_delivery_id_ordernumder, set_new_delivery_ordernumder, get_user_id, \
     get_product_find
-from app.filter import ChatTypeFilter, IsAdmin
+from app.filter import ChatTypeFilter, IsAdmin, Private
 from aiogram.filters import Command, Filter
 from app.filter import Admin
 import app.keyboards as kb
@@ -22,6 +22,7 @@ from app.user import product_menu_user, ordsus_menu_user
 admin = Router()
 #admin.message.filter(ChatTypeFilter(["private"]), IsAdmin())
 admin.message.filter(Admin())
+admin.message.filter(Private())
 @admin.message(Command("admin"))
 @admin.callback_query(F.data == "admin")
 async def cmd_start(data, state: FSMContext):
@@ -140,7 +141,7 @@ async def color_menu(**kwargs):
 
         )
     return (builder, len(color), 'color_menu')
-@admin.callback_query(F.data.startswith("color"))
+@admin.callback_query(F.data=="color")
 async def send_color_handler(callback:CallbackQuery):
     await callback.message.edit_text(
         text=kb.name_menu['color_menu'],
@@ -166,9 +167,9 @@ async def delivery_menu(**kwargs):
 
         )
     return (builder, len(delivery), 'delivery_menu')
-@admin.callback_query(F.data.startswith("delivery"))
+@admin.callback_query(F.data=="supply")
 async def send_delivery_handler(callback:CallbackQuery):
-    await callback.message.edit_text(
+    await callback.message.answer(
         text=kb.name_menu['delivery_menu'],
         reply_markup=await get_paginat_kb(fun=delivery_menu),
     )
@@ -444,7 +445,15 @@ async def ordup_admin(callback: CallbackQuery):
     text = f"{text} Доставка: <b>{ordernumber.delivery} {ordernumber.delivery_price}₽</b>\n"
     data = ordernumber.date_create
     data = data.strftime("%d.%m.%Y %H:%M")
-    text = f"{text} Дата: <b>{data}</b>\n"
+    text = f"{text} Дата создания: <b>{data}</b>\n"
+    if ordernumber.status == 'pay':
+        data_pay = ordernumber.date_pay
+        data_pay = data_pay.strftime("%d.%m.%Y %H:%M")
+        text = f"{text} Дата оплаты: <b>{data_pay}</b>\n"
+        text = (f"{text} "
+                f"--------------------------------------\n"
+                f"Детали оплаты: <b>{ordernumber.comment}</b>\n"
+                f"--------------------------------------\n")
     n = 1
     summ = float(ordernumber.delivery_price)
     for order in ordernumber.orders:
@@ -453,7 +462,7 @@ async def ordup_admin(callback: CallbackQuery):
         text = f"{text} {order.sizes}"
         text = f"{text} <b>{order.price}</b>₽"
         text = f"{text} {order.quantity}шт.\n"
-        summ = summ + float(order.price)
+        summ = summ + (float(order.price)*order.quantity)
         n += 1
     builder.row(InlineKeyboardButton(text=f'{kb.name_menu['delivery_menu']} ',
                                      callback_data=f"updelyadid_{ordernumber_id}"),
@@ -589,7 +598,8 @@ async def products_find(**kwargs):
 
 @admin.message(FindProduct.new, F.text)
 @admin.callback_query(F.data.startswith('prdcts'))
-async def products_admin(data):
+async def products_admin(data, state: FSMContext):
+    await state.clear()
     try:
         if isinstance(data, types.Message):
             mes = data

@@ -2,7 +2,8 @@ import datetime
 import os
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
-from sqlalchemy import ForeignKey, String, BigInteger, text, Text
+from sqlalchemy import ForeignKey, String, BigInteger, text, Text, func, DateTime
+from datetime import timezone
 
 USER = os.getenv('DB_USER')
 DB_PASS = os.getenv('DB_PASS')
@@ -153,10 +154,12 @@ class OrderNumber(Base):
     users_id: Mapped[int] = mapped_column(nullable=True)
     tg_id = mapped_column(BigInteger)
     status: Mapped[str] = mapped_column(String(50), nullable=True)
-    comment: Mapped[str] = mapped_column(String(200), nullable=True)
+    comment: Mapped[str] = mapped_column(Text, nullable=True)
     delivery: Mapped[str] = mapped_column(Text, nullable=True)
-    delivery_price: Mapped[float] = mapped_column(nullable=True)
-    date_create: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))
+    delivery_price: Mapped[float] = mapped_column(nullable=True)#datetime.UTC
+    # date_create: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))
+    date_create: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=datetime.datetime.now(timezone.utc))
+    date_pay: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=datetime.datetime.now(timezone.utc))
     orders: Mapped[list['Orders']] = relationship(back_populates="ordernumber")
 
 class Orders(Base):

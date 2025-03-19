@@ -1,5 +1,8 @@
 venv
 .idea
 .env
-__pycashe__
 config.py
+__pycashe__
+*/__pycache__/
+**/__pycache__/
+***/__pycache__/

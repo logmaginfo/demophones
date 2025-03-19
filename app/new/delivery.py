@@ -18,7 +18,7 @@ async def delivery_new(callback:CallbackQuery, state: FSMContext):
     await state.update_data(switch=switch)
     await state.update_data(status='new')
     await state.set_state(UpDelivery.sort)
-    await callback.message.answer('Сортировка <b>*</b>', reply_markup=await kb.kb_cancel('delivery_menu'), parse_mode='html')
+    await callback.message.answer('Сортировка <b>*</b>', reply_markup=await kb.kb_cancel('supply'), parse_mode='html')
 ################################# upbrand
 @newdelivery.callback_query(F.data.startswith('updelivery_'))
 async def delivery_up(callback:CallbackQuery, state: FSMContext):
@@ -46,9 +46,9 @@ async def delivery_new_sort(message: Message, state: FSMContext):
     if len(message.text)<5:
         await state.set_state(UpDelivery.name)
         await state.update_data(sort=message.text)
-        await message.answer('Введите название', reply_markup=await kb.kb_cancel('delivery_menu'))
+        await message.answer('Введите название', reply_markup=await kb.kb_cancel('supply'))
     else:
-        await message.answer('Сортировка(<5)', reply_markup=await kb.kb_cancel('delivery_menu'))
+        await message.answer('Сортировка(<5)', reply_markup=await kb.kb_cancel('supply'))
 
 ################################# name
 @newdelivery.message(UpDelivery.name, F.text)
@@ -56,9 +56,9 @@ async def delivery_new_name(message: Message, state: FSMContext):
     if len(message.text)<90:
         await state.set_state(UpDelivery.price)
         await state.update_data(name=message.text)
-        await message.answer('Введите цену', reply_markup=await kb.kb_cancel('delivery_menu'))
+        await message.answer('Введите цену', reply_markup=await kb.kb_cancel('supply'))
     else:
-        await message.answer('Введите название(<90)', reply_markup=await kb.kb_cancel('delivery_menu'))
+        await message.answer('Введите название(<90)', reply_markup=await kb.kb_cancel('supply'))
 
 ################################# price
 @newdelivery.message(UpDelivery.price, F.text)
@@ -67,9 +67,9 @@ async def delivery_new_price(message: Message, state: FSMContext):
         price = float(message.text)
         await state.set_state(UpDelivery.description)
         await state.update_data(price=price)
-        await message.answer('Введите описание', reply_markup=await kb.kb_cancel('delivery_menu'))
+        await message.answer('Введите описание', reply_markup=await kb.kb_cancel('supply'))
     except Exception as e:
-        await message.answer('Цена. Формат: "50.5" или "786"', reply_markup=await kb.kb_cancel('delivery_menu'))
+        await message.answer('Цена. Формат: "50.5" или "786"', reply_markup=await kb.kb_cancel('supply'))
 
 ################################# description
 @newdelivery.message(UpDelivery.description, F.text)
@@ -85,4 +85,4 @@ async def delivery_new_desc(message: Message, state: FSMContext):
         await message.answer(f"{kb.name_menu['delivery_menu']} {text}", reply_markup=await get_paginat_kb(fun=delivery_menu))
         await state.clear()
     else:
-        await message.answer('Введите описание(<500)', reply_markup=await kb.kb_cancel('delivery_menu'))
+        await message.answer('Введите описание(<500)', reply_markup=await kb.kb_cancel('supply'))

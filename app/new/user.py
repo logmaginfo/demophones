@@ -25,7 +25,7 @@ async def user_new_tg_id(message: Message, state: FSMContext):
     if message.text.isnumeric() and len(message.text)<20:
         await state.set_state(UpUser.name)
         await state.update_data(tg_id=message.text)
-        await message.answer('Введите Имя', reply_markup=await kb.kb_next('users_menu'))
+        await message.answer('Введите Имя', reply_markup=await kb.kb_next('users'))
     else:
         await message.answer('Введите id Telegram - число (<20) *', reply_markup=await kb.kb_cancel('users_menu'))#, parse_mode='html'
 
@@ -59,15 +59,15 @@ async def user_new_name(message: Message, state: FSMContext):
     if len(message.text)<40:
         await state.set_state(UpUser.last_name)
         await state.update_data(name=message.text)
-        await message.answer('Введите Фамилию', reply_markup=await kb.kb_next('users_menu'))
+        await message.answer('Введите Фамилию', reply_markup=await kb.kb_next('users'))
     else:
-        await message.answer('Введите Имя (<40)', reply_markup=await kb.kb_next('users_menu'))
+        await message.answer('Введите Имя (<40)', reply_markup=await kb.kb_next('users'))
 # @newuser.message(UpUser.name)
 @newuser.callback_query(UpUser.name, F.data == 'next')
 async def user_new_name_null(callback:CallbackQuery, state: FSMContext):
     await state.set_state(UpUser.last_name)
     await state.update_data(name=null())
-    await callback.message.edit_text('Введите Фамилию', reply_markup=await kb.kb_next('users_menu'))
+    await callback.message.edit_text('Введите Фамилию', reply_markup=await kb.kb_next('users'))
 ################################# last_name
 @newuser.message(UpUser.last_name, F.text)
 async def user_new_last_name(message: Message, state: FSMContext):
@@ -75,16 +75,16 @@ async def user_new_last_name(message: Message, state: FSMContext):
         await state.set_state(UpUser.phone)
         await state.update_data(last_name=message.text)
         data = await state.get_data()
-        await message.answer(f'Введите № ☎️. Формат: +71111111111', reply_markup=await kb.kb_next('users_menu'))
+        await message.answer(f'Введите № ☎️. Формат: +71111111111', reply_markup=await kb.kb_next('users'))
     else:
-        await message.answer('Фамилия (<40)', reply_markup=await kb.kb_next('users_menu'))
+        await message.answer('Фамилия (<40)', reply_markup=await kb.kb_next('users'))
 
 # @newuser.message(UpUser.last_name)
 @newuser.callback_query(UpUser.last_name, F.data == 'next')
 async def user_new_last_name_null(callback:CallbackQuery, state: FSMContext):
     await state.set_state(UpUser.phone)
     await state.update_data(last_name=null())
-    await callback.message.edit_text('Введите № ☎️. Формат: +71111111111', reply_markup=await kb.kb_next('users_menu'))
+    await callback.message.edit_text('Введите № ☎️. Формат: +71111111111', reply_markup=await kb.kb_next('users'))
 
 ################################# phone
 def validate_phone_number(phone_number):
@@ -98,16 +98,16 @@ async def user_new_phone(message: Message, state: FSMContext):
     if validate_phone_number(message.text) and len(message.text)<20:
         await state.set_state(UpUser.email)
         await state.update_data(phone=message.text)
-        await message.answer('Введите 📭 email', reply_markup=await kb.kb_next('users_menu'))
+        await message.answer('Введите 📭 email', reply_markup=await kb.kb_next('users'))
     else:
-        await message.answer('Формат ☎️: +71111111111 (<20)', reply_markup=await kb.kb_next('users_menu'))
+        await message.answer('Формат ☎️: +71111111111 (<20)', reply_markup=await kb.kb_next('users'))
 
 # @newuser.message(UpUser.phone)
 @newuser.callback_query(UpUser.phone, F.data == 'next')
 async def user_new_phone_null(callback:CallbackQuery, state: FSMContext):
     await state.set_state(UpUser.email)
     await state.update_data(phone=null())
-    await callback.message.edit_text('Введите 📭 email', reply_markup=await kb.kb_next('users_menu'))
+    await callback.message.edit_text('Введите 📭 email', reply_markup=await kb.kb_next('users'))
 
 ################################# email
 def validate_phone_email(email):
@@ -122,15 +122,15 @@ async def user_new_email(message: Message, state: FSMContext):
     if validate_phone_email(message.text) and len(message.text)<90:
         await state.set_state(UpUser.address)
         await state.update_data(email=message.text)
-        await message.answer('Введите адрес 🏡', reply_markup=await kb.kb_next('users_menu'))
+        await message.answer('Введите адрес 🏡', reply_markup=await kb.kb_next('users'))
     else:
-        await message.answer('Формат 📭: myemail@myemail.my (<90)', reply_markup=await kb.kb_next('users_menu'))
+        await message.answer('Формат 📭: myemail@myemail.my (<90)', reply_markup=await kb.kb_next('users'))
 
 @newuser.callback_query(UpUser.email, F.data == 'next')
 async def user_new_email_null(callback:CallbackQuery, state: FSMContext):
     await state.set_state(UpUser.address)
     await state.update_data(email=null())
-    await callback.message.edit_text('Введите адрес 🏡', reply_markup=await kb.kb_next('users_menu'))
+    await callback.message.edit_text('Введите адрес 🏡', reply_markup=await kb.kb_next('users'))
 
 ################################# address
 
@@ -139,15 +139,15 @@ async def user_new_address(message: Message, state: FSMContext):
     if len(message.text)<180:
         await state.set_state(UpUser.comment)
         await state.update_data(address=message.text)
-        await message.answer('Введите комментарий 💬', reply_markup=await kb.kb_next('users_menu'))
+        await message.answer('Введите комментарий 💬', reply_markup=await kb.kb_next('users'))
     else:
-        await message.answer('Адрес 🏡 (<180)', reply_markup=await kb.kb_next('users_menu'))
+        await message.answer('Адрес 🏡 (<180)', reply_markup=await kb.kb_next('users'))
 
 @newuser.callback_query(UpUser.address, F.data == 'next')
 async def user_new_address_null(callback:CallbackQuery, state: FSMContext):
     await state.set_state(UpUser.comment)
     await state.update_data(address=null())
-    await callback.message.edit_text('Введите комментарий 💬', reply_markup=await kb.kb_next('users_menu'))
+    await callback.message.edit_text('Введите комментарий 💬', reply_markup=await kb.kb_next('users'))
 
 ################################# comment
 
@@ -163,7 +163,7 @@ async def user_new_comment(message: Message, state: FSMContext):
            text = await set_user_up(data)
         await message.answer(kb.name_menu['users_menu'], reply_markup=await get_paginat_kb(fun=users_menu),)
     else:
-        await message.answer('Комментарий 💬 (<280)', reply_markup=await kb.kb_next('users_menu'))
+        await message.answer('Комментарий 💬 (<280)', reply_markup=await kb.kb_next('users'))
 
 
 @newuser.callback_query(UpUser.comment, F.data == 'next')

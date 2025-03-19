@@ -1,4 +1,5 @@
 import uuid
+from datetime import timezone
 
 from sqlalchemy import null, func, table, column
 from sqlalchemy import select, update, delete, desc
@@ -819,6 +820,31 @@ async def poto_join(session, id):
 
 async def format_number(number):
     return '{0:,}'.format(number).replace(',', ' ')
+
+@sess
+async def up_pay_ordernumber(session, ordernumber_id, text):
+    id = int(ordernumber_id)
+    # data = datetime.datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    await session.execute(update(OrderNumber).where(OrderNumber.id == id).values(
+        status="pay",
+        comment=text,
+        date_pay = datetime.datetime.now(timezone.utc)
+        #func.now(timezone.utc)
+        #text("TIMEZONE('utc', now())")#datetime.datetime.now(datetime.UTC)
+    ))
+    await session.commit()
+
+@sess
+async def up_pay_price(session, price_id, new_quantity):
+    id = int(price_id)
+    new_quantity = int(new_quantity)
+    price = await get_price_id(id)
+    quantity = price.quantity - new_quantity
+    if quantity < 0: quantity = 0
+    await session.execute(update(Price).where(Price.id == id).values(
+        quantity=quantity
+    ))
+    await session.commit()
 
 
 

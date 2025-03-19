@@ -20,3 +20,6 @@ class IsAdmin(Filter):
 class Admin(Filter):
     async def __call__(self, message: types.Message):
         return message.from_user.id in ADMINS
+class Private(Filter):
+    async def __call__(self, message: types.Message):
+        return message.chat.type == "private"
