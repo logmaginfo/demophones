@@ -1,12 +1,8 @@
-import sqlalchemy
-from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
-from app.db.requests import set_user_new, get_user_id, set_user_up
 from app.filter import Admin, Private
-from aiogram.types import Message, CallbackQuery
-from app.states import UpSize
+from aiogram.types import Message
+
 import app.keyboards as kb
-import re
 
 endrouter = Router()
 endrouter.message.filter(Admin())
